@@ -180,7 +180,16 @@ class MessagesViewController: MSMessagesAppViewController {
         case .spades:
             Text("Spades Transcript View")
         case .unknown:
-            Text("New game! Update your app to play!")
+            Text("New game! \nUpdate your app to play!")
+                .font(.system(.headline, design: .serif, weight: .semibold))
+                .multilineTextAlignment(.center)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(
+                    Image("feltBackgroundLight")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                )
         }
     }
     
@@ -386,9 +395,14 @@ class MessagesViewController: MSMessagesAppViewController {
         guard let stateString = components.queryItems?.first(where: { $0.name == "gameState" })?.value,
               let stateData = Data(base64Encoded: stateString) else { return nil }
         
-        // Look for the game type. If it's missing or invalid, default to Gin Rummy for legacy support.
-        let typeString = components.queryItems?.first(where: { $0.name == "gameType" })?.value
-        let gameType = GameType(rawValue: typeString ?? "") ?? .unknown
+        // Look for the game type. If present, set it. If unrecognized (outdated client), default to unknown.
+        // If missing, default to Gin Rummy (legacy support for users still on 1.x)
+        let gameType: GameType
+        if let typeString = components.queryItems?.first(where: { $0.name == "gameType" })?.value {
+            gameType = GameType(rawValue: typeString) ?? .unknown
+        } else {
+            gameType = .ginRummy
+        }
         
         return (type: gameType, data: stateData)
     }

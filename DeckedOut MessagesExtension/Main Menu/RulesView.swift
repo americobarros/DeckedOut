@@ -38,8 +38,8 @@ struct RulesView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
+                .padding(.top, isExpanded ? 20 : 12)
+                //.padding(.bottom, 12)
                 
                 // Paged rule pages
                 TabView {
@@ -93,7 +93,7 @@ struct RulesView: View {
         switch gameType {
         case .ginRummy:
             return [
-                ("rectangle.stack", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card is placed face-up to start the discard pile."),
+                ("rectangle.stack", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
                 ("arrow.2.circlepath", "Your Turn", "Draw one card from either the deck or the discard pile, then discard one card from your hand."),
                 ("rectangle.3.group", "Melds", "Arrange your cards into sets (same rank) or runs (consecutive cards of the same suit) of 3 or more."),
                 ("crown.fill", "How to Win", "Once all your cards form valid melds, you win! The fewer turns it takes, the better.")
@@ -101,17 +101,17 @@ struct RulesView: View {
         case .crazy8s:
             return [
                 ("rectangle.stack", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
-                ("suit.spade.fill", "Playing Cards", "On your turn, play a card that matches the top discard's rank or suit. If you can't play, draw from the deck."),
+                ("arrow.2.circlepath", "Your Turn", "Discard a card that matches the top discard's rank or suit. If you can't discard, draw from the deck."),
                 ("8.circle.fill", "Crazy 8s!", "Eights are wild! Play an 8 at any time and choose the suit for the next player to follow."),
                 ("crown.fill", "How to Win", "Be the first player to get rid of all your cards!")
             ]
         case .golf:
             return [
-                ("questionmark.circle", "Coming Soon", "Golf rules will be added when the game is available.")
+                ("figure.golf", "Coming Soon", "Golf rules will be added when the game is available.")
             ]
         case .spades:
             return [
-                ("questionmark.circle", "Coming Soon", "Spades rules will be added when the game is available.")
+                ("suit.spade.fill", "Coming Soon", "Spades rules will be added when the game is available.")
             ]
         case .unknown:
             return [
@@ -131,13 +131,14 @@ private struct RulePage: View {
     var isExpanded: Bool = false
     
     var body: some View {
-        VStack(spacing: isExpanded ? 16 : 8) {
+        VStack(spacing: 16) {
             Image(systemName: imageName)
                 .resizable()
                 .scaledToFit()
                 .frame(height: 50)
                 .foregroundStyle(.white.opacity(0.85))
                 .shadow(color: .white.opacity(0.3), radius: 5)
+                .padding(.top, isExpanded ? 24 : 8) //set to nullify padding for accessibility settings
             
             Text(title)
                 .font(.headline)
@@ -148,10 +149,10 @@ private struct RulePage: View {
                 .font(.subheadline)
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
             
             Spacer()
         }
-        .padding(.top, 5)
+        .padding(.top)
     }
 }

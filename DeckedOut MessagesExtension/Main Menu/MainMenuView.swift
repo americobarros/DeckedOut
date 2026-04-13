@@ -74,7 +74,7 @@ struct MainMenuView: View {
     
     private var backgroundLayer: some View {
         ZStack {
-            Image(colorScheme == .dark ? "feltBackgroundDark" : "feltBackgroundLight")
+            Image("feltBackgroundLight") //Image(colorScheme == .dark ? "feltBackgroundDark" : "feltBackgroundLight")
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
