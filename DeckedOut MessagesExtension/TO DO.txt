@@ -1,7 +1,10 @@
 -add another game? (switch?)
-    -add rules window
+    -add rules window for switch
 
 -add repeating game cards in main menu so theres a full circle fan?
+
+-when opening a new game after a game that was won, the last discard of the old game gets animated before disappearing for some reason
+    -the likely culprit is the will transition player hand empty check
 
 -verify localization works for every view
 
@@ -89,7 +92,7 @@ Customizations to sell:
 
 
 QOL changes / possible updates:
--FIGURE OUT GAME RESUMPTION/CONTINUATION BUG!!!
+-keep an eye on the game resumption bug, but blocking didSelect/Recieve from processing transcript views seems to solve it
 -“tap card to play” reminder text in the middle of the screen if user looked at main menu for too long, (repeating opacity animation?)
 -Add rules section and a notice that Aces are not high cards in gin rummy!
 -Deck UI # should change based on how many cards there are left in the deck. when we get down to the final 5 cards, it should reflect that

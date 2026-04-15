@@ -64,16 +64,16 @@ class MessagesViewController: MSMessagesAppViewController {
     
     override func didSelect(_ message: MSMessage, conversation: MSConversation) {
         super.didSelect(message, conversation: conversation)
+        guard presentationStyle != .transcript else { return } // Transcript instances must never load game state or wire the send callback
         loadGameStateToMemory(from: message, conversation: conversation)
     }
    
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
         super.didReceive(message, conversation: conversation)
-        
         // Ignore messages we sent ourselves - prevents double-processing our own outgoing move
         //let isFromMe = !conversation.remoteParticipantIdentifiers.contains(message.senderParticipantIdentifier)
         //guard !isFromMe else { return }
-        
+        guard presentationStyle != .transcript else { return } // Transcript instances must never load game state or wire the send callback
         loadGameStateToMemory(from: message, conversation: conversation)
     }
     
@@ -386,7 +386,6 @@ class MessagesViewController: MSMessagesAppViewController {
                 self.activeGameEngine?.clearMidTurnState(conversationID: conversation.localParticipantIdentifier.uuidString)
             }
         }
-        //MSMessageErrorCode
     }
     
     private func extractGameInfo(from message: MSMessage) -> (type: GameType, data: Data)? {
