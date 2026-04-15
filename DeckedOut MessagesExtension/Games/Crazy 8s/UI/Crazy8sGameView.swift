@@ -248,10 +248,13 @@ struct Crazy8sGameView: View {
             do {
                 try await Task.sleep(nanoseconds: 600_000_000) // 0.6s for discard animation
             } catch { }
+        } else if game.phase == .animationPhase {
+            // Opponent drew cards but didn't discard — transition to player's turn
+            game.phase = .mainPhase
+            game.checkHandPlayability()
         }
         
         game.hasPerformedInitialLoad = true
-        //animating discard is automatically handled in opponents hand view
     }
     
     private func calculateProperDeckZone(from frame: CGRect) -> CGRect {

@@ -43,6 +43,7 @@ class Crazy8sManager: ObservableObject, GameEngine {
     @Published var opponentHasWon: Bool = false //stays local
     @Published var opponentCardPendingDiscard: Card? = nil // Holds the card waiting in the wings
     @Published var opponentCardAnimatingToDiscard: Card? = nil       // The trigger the view actually watches
+    @Published var opponentCardAnimatingFromDeck: Card? = nil        // The trigger for draw animations
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
     
     private init() {} // values are already initialized here ^
@@ -140,10 +141,7 @@ class Crazy8sManager: ObservableObject, GameEngine {
         
         let card = deck.popLast()!
         opponentHand.append(card)
-        
-        //if cardsOpponentDrew == 3 {
-            //phase = .mainPhase
-        //}
+        opponentCardAnimatingFromDeck = card
     }
     
     func opponentDiscardCard(card: Card) { //pseudo discard
@@ -251,6 +249,7 @@ class Crazy8sManager: ObservableObject, GameEngine {
         self.cardsOpponentDrew = 0
         self.playerHasWon = false
         self.opponentHasWon = false
+        self.opponentCardAnimatingFromDeck = nil
         self.turnNumber = 0
     }
     

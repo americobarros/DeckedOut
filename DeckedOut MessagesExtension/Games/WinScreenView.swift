@@ -17,10 +17,10 @@ struct WinScreenView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 25) {
-                Image(systemName: "trophy.fill")
+                Image(systemName: "trophy.fill") //or "xmark" for loss, but it should be bolder
                     .font(.system(size: 80))
                     .foregroundColor(playerHasWon ? .yellow : .red)
-                    .shadow(color: .orange, radius: 10)
+                    .shadow(color: playerHasWon ? .orange : .red, radius: 10)
                     .scaleEffect(animateIn ? 1.0 : 0.5)
                 
                 VStack(spacing: 8) {

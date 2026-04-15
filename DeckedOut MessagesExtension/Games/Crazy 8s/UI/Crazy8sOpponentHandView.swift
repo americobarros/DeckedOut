@@ -71,27 +71,25 @@ struct Crazy8sOpponentHandView: View {
         }
         .frame(height: cardHeight) //technically should be adding the arch amount but this doesnt really matter...
         
-        .onChange(of: cards) { oldHand, newHand in
-            if newHand.count > oldHand.count {
-                let drawIndex = newHand.count - 1 // Safely get the new card's index
-                guard animatingCard == nil else { return }
-                
-                let card = newHand[drawIndex]
-                cardWaitingToAnimate = card
-                
-                DispatchQueue.main.async {
-                    guard let targetFrame = slotFrames[drawIndex],
-                          let zone = deckZone else {
-                        cardWaitingToAnimate = nil
-                        return
-                    }
-                    
-                    let exactCenterOffset = Double(newHand.count - 1) / 2.0
-                    let finalAngle = Angle.degrees((Double(drawIndex) - exactCenterOffset) * -fanningAngle)
-                    
-                    self.animatingCard = card
-                    animateDraw(cardFrame: targetFrame, drawZone: zone, fanAngle: finalAngle)
+        .onChange(of: game.opponentCardAnimatingFromDeck) { _, card in
+            guard let card = card else { return }
+            guard let drawIndex = cards.firstIndex(of: card) else { return }
+            
+            cardWaitingToAnimate = card
+            
+            // Wait a frame for the GeometryReader to report the new slot's frame
+            DispatchQueue.main.async {
+                guard let targetFrame = slotFrames[drawIndex],
+                      let zone = deckZone else {
+                    cardWaitingToAnimate = nil
+                    return
                 }
+                
+                let exactCenterOffset = Double(cards.count - 1) / 2.0
+                let finalAngle = Angle.degrees((Double(drawIndex) - exactCenterOffset) * -fanningAngle)
+                
+                self.animatingCard = card
+                animateDraw(cardFrame: targetFrame, drawZone: zone, fanAngle: finalAngle)
             }
         }
         

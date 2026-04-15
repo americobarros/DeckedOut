@@ -1,17 +1,15 @@
 -Crazy 8s TO DO:
-    FIX BUG: if you tap too fast it doesnt count as a card drawn in the backend and sends less cards drawn
     -make sure recieving a game move from another kind of game does not replace what we currently have on screen (problem with didRecieve and didSelect)
     -be able to load separate sessions properly like how gin rummy does
 
--add rules window for every game on main menu (add rules for games we have yet to add!)
+-add rules window for every game
     -Gin Rummy (DONE)
-    -Crazy 8s (DONE)
+    -Crazy 8s ...done?
     -for Switch? Golf? Spades?
 
--add actual art for each card game
+-add another game? (switch)
 
 -add repeating gin rummy/crazy8s cards to main menu so theres a full fan?
--add another game? (switch)
 
 -verify localization works for every view
 

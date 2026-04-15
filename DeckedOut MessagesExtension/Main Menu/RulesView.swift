@@ -101,7 +101,7 @@ struct RulesView: View {
         case .crazy8s:
             return [
                 ("rectangle.stack", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
-                ("arrow.2.circlepath", "Your Turn", "Discard a card that matches the top discard's rank or suit. If you can't discard, draw from the deck."),
+                ("arrow.2.circlepath", "Your Turn", "Discard a card that matches the top discard's rank or suit. If you can't, draw from the deck. If you draw three cards and still can't discard, your turn is skipped."),
                 ("8.circle.fill", "Crazy 8s!", "Eights are wild! Play an 8 at any time and choose the suit for the next player to follow."),
                 ("crown.fill", "How to Win", "Be the first player to get rid of all your cards!")
             ]

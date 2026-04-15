@@ -69,7 +69,11 @@ class MessagesViewController: MSMessagesAppViewController {
    
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
         super.didReceive(message, conversation: conversation)
-        //check if from the same session before updating?
+        
+        // Ignore messages we sent ourselves - prevents double-processing our own outgoing move
+        //let isFromMe = !conversation.remoteParticipantIdentifiers.contains(message.senderParticipantIdentifier)
+        //guard !isFromMe else { return }
+        
         loadGameStateToMemory(from: message, conversation: conversation)
     }
     
@@ -311,8 +315,6 @@ class MessagesViewController: MSMessagesAppViewController {
     }
     
     func sendGameMove(gameType: GameType, stateData: Data) {
-        guard let conversation = activeConversation else { return }
-        
         // Further package the game state
         let stateDataJSONString = stateData.base64EncodedString()
         var components = URLComponents()
@@ -321,7 +323,14 @@ class MessagesViewController: MSMessagesAppViewController {
             URLQueryItem(name: "gameState", value: stateDataJSONString)]
         
         // Create the message & attach data
-        let message = MSMessage(session: conversation.selectedMessage?.session ?? MSSession())
+        let conversation = activeConversation!
+        //print("conversation:", conversation)
+        let selectedMessage = conversation.selectedMessage!
+        //print("selectedMessage:", selectedMessage)
+        let session = selectedMessage.session!
+        //print("session:", session)
+        let message = MSMessage(session: session)
+        //print("message:", message)
         message.url = components.url
         
         // Set basic template appearance
