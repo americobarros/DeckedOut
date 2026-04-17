@@ -298,17 +298,20 @@ struct GolfGameView: View {
     private var opponentDisplayHand: some View {
         GolfPlayerHandView(
             cards: game.opponentHand,
+            faceUpIndices: game.opponentFaceUpIndices,
             discardPileZone: discardFrame,
             deckZone: deckFrame,
             lastDrawSource: .none
         )
-        .shadow(color: game.playerHasWon ? .yellow : .black.opacity(0.25), radius: game.playerHasWon ? 15 : 5, x: game.playerHasWon ? 5 : 0)
+        .allowsHitTesting(false)
+        .shadow(color: game.playerHasWon ? .yellow : .black.opacity(0.1), radius: game.playerHasWon ? 15 : 5, x: game.playerHasWon ? 5 : 0)
         .zIndex(1)
     }
 
     private var interactivePlayerHand: some View {
         GolfPlayerHandView(
             cards: $game.playerHand,
+            faceUpIndices: game.playerFaceUpIndices,
             discardPileZone: discardFrame,
             deckZone: deckFrame,
             lastDrawSource: lastDrawSource,
@@ -327,7 +330,7 @@ struct GolfGameView: View {
                 playerSlotFrames[index] = frame
             }
         )
-        .shadow(color: game.playerHasWon ? .yellow : .black.opacity(0.25), radius: game.playerHasWon ? 15 : 5, x: game.playerHasWon ? 5 : 0)
+        .shadow(color: game.playerHasWon ? .yellow : .black.opacity(0.1), radius: game.playerHasWon ? 15 : 5, x: game.playerHasWon ? 5 : 0)
         .zIndex(1)
     }
     
@@ -390,9 +393,9 @@ struct GolfGameView: View {
         }
 
         // Animate the tapped card toward the discard pile
-        departingIndex = index
         if let slotFrame = playerSlotFrames[index] {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                departingIndex = index
                 departingOffset = CGSize(
                     width: discardFrame.midX - slotFrame.midX,
                     height: discardFrame.midY - slotFrame.midY

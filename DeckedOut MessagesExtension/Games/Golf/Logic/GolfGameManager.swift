@@ -17,6 +17,8 @@ struct GolfGameState: Codable {
     let senderDrewFromDeck: Bool
     let indexSenderReplaced: Int?
     let turnNumber: Int
+    let senderFaceUpIndices: Set<Int>
+    let receiverFaceUpIndices: Set<Int>
 }
 
 // MARK: The Game Engine
@@ -35,7 +37,9 @@ class GolfManager: ObservableObject, GameEngine {
     @Published var playerHasWon: Bool = false //stays local
     @Published var opponentHasWon: Bool = false //stays local
     @Published var turnNumber: Int = 0
-    
+    @Published var playerFaceUpIndices: Set<Int> = []
+    @Published var opponentFaceUpIndices: Set<Int> = []
+
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
     
     private init() {} // values are already initialized here ^
@@ -75,6 +79,7 @@ class GolfManager: ObservableObject, GameEngine {
         let oldCard = playerHand[index]
         indexReplaced = index
         playerHand[index] = drawn
+        playerFaceUpIndices.insert(index)
         discardPile.append(oldCard)
         hoveringCard = nil
         SoundManager.instance.playCardSlap()
@@ -108,6 +113,7 @@ class GolfManager: ObservableObject, GameEngine {
         // Swap: replace the card at the index, discard the old one
         let replacedCard = opponentHand[replaceIndex]
         opponentHand[replaceIndex] = drawnCard
+        opponentFaceUpIndices.insert(replaceIndex)
         discardPile.append(replacedCard)
         
         SoundManager.instance.playCardSlap()
@@ -176,6 +182,8 @@ class GolfManager: ObservableObject, GameEngine {
             self.hoveringCard = stashedHoveringCard
             self.playerHand = state.receiverHand
             self.opponentHand = state.senderHand
+            self.playerFaceUpIndices = state.receiverFaceUpIndices
+            self.opponentFaceUpIndices = state.senderFaceUpIndices
             if let topDeckCard = deck.last,
                stashedHoveringCard.id == topDeckCard.id { // the user previously drew from the deck
                 deck.removeLast()
@@ -183,19 +191,23 @@ class GolfManager: ObservableObject, GameEngine {
                 discardPile.removeLast()
             }
             phase = .placementPhase
-            
+
         } else if isPlayersTurn { //the user is beginning their turn...
             self.playerHand = state.receiverHand
+            self.playerFaceUpIndices = state.receiverFaceUpIndices
+            self.opponentFaceUpIndices = state.senderFaceUpIndices
             let hasVisualsToAnimate = applyOpponentTurnVisuals(state: state)
             if hasVisualsToAnimate {//it is not the first turn...
                 phase = .animationPhase
             } else { //it is the first turn...
                 phase = .drawPhase
             }
-            
+
         } else { //it is not the players turn...
             self.playerHand = state.senderHand
             self.opponentHand = state.receiverHand
+            self.playerFaceUpIndices = state.senderFaceUpIndices
+            self.opponentFaceUpIndices = state.receiverFaceUpIndices
             //playerHasWon = GolfValidator.canMeldAllCards(hand: self.playerHand)
             if playerHasWon {
                 phase = .gameEndPhase
@@ -220,6 +232,8 @@ class GolfManager: ObservableObject, GameEngine {
         self.playerHasWon = false
         self.opponentHasWon = false
         self.turnNumber = 0
+        self.playerFaceUpIndices = []
+        self.opponentFaceUpIndices = []
     }
     
     private func applyOpponentTurnVisuals(state: GolfGameState) -> Bool {
@@ -265,7 +279,12 @@ class GolfManager: ObservableObject, GameEngine {
         }
         var newDiscardPile: [Card] = []
         newDiscardPile.append(newDeck.popLast()!)
-        
+
+        // Randomly choose 2 cards to start face up for each player
+        let allIndices = Array(0..<6)
+        let senderFaceUp = Set(allIndices.shuffled().prefix(2))
+        let receiverFaceUp = Set(allIndices.shuffled().prefix(2))
+
         let initialState = GolfGameState(
             sessionID: newSessionID,
             deck: newDeck,
@@ -274,7 +293,9 @@ class GolfManager: ObservableObject, GameEngine {
             receiverHand: newOpponentHand,
             senderDrewFromDeck: false, //defaults to user drawing from discard pile but shouldnt matter if this is also nil:
             indexSenderReplaced: nil,
-            turnNumber: 0)
+            turnNumber: 0,
+            senderFaceUpIndices: senderFaceUp,
+            receiverFaceUpIndices: receiverFaceUp)
         
         return try? JSONEncoder().encode(initialState)
     }
@@ -290,7 +311,9 @@ class GolfManager: ObservableObject, GameEngine {
             receiverHand: self.opponentHand,
             senderDrewFromDeck: self.opponentDrewFromDeck,
             indexSenderReplaced: self.indexReplaced,
-            turnNumber: self.turnNumber + 1
+            turnNumber: self.turnNumber + 1,
+            senderFaceUpIndices: self.playerFaceUpIndices,
+            receiverFaceUpIndices: self.opponentFaceUpIndices
         )
         
         guard let stateData = try? JSONEncoder().encode(currentGameState) else {

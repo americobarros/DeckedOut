@@ -12,6 +12,7 @@ struct GolfPlayerHandView: View {
     
     //Passed Arguments
     @Binding var cards: [Card]
+    var faceUpIndices: Set<Int> = []
     var discardPileZone: CGRect? = nil
     var deckZone: CGRect? = nil
     let lastDrawSource: DrawSource
@@ -58,12 +59,13 @@ struct GolfPlayerHandView: View {
                             let isDragging = draggedCard == card
                             let isAnimating = animatingCard == card
                             let isDeparting = departingIndex == index
-                            
+                            let isFaceUp = faceUpIndices.contains(index)
+
                             GeometryReader { geo in
                                 let geoFrame = geo.frame(in: .global)
-                                
+
                                 CardView(frontImage: card.imageName,
-                                         rotation: isAnimating ? flipRotation : 0)
+                                         rotation: isAnimating ? flipRotation : (isDeparting || isFaceUp ? 0 : -180))
                                     .rotationEffect(isAnimating ? animationRotationCorrection : .zero)
                                     .scaleEffect(isDragging ? 1.1 : 1.0)
                                     .offset(isDeparting ? departingOffset : (isDragging ? dragOffset : .zero))
@@ -149,8 +151,9 @@ struct GolfPlayerHandView: View {
 }
 
 extension GolfPlayerHandView {
-    init(cards: [Card], discardPileZone: CGRect, deckZone: CGRect, lastDrawSource: DrawSource) {
+    init(cards: [Card], faceUpIndices: Set<Int>, discardPileZone: CGRect, deckZone: CGRect, lastDrawSource: DrawSource) {
         self._cards = .constant(cards)
+        self.faceUpIndices = faceUpIndices
         self.discardPileZone = discardPileZone
         self.deckZone = deckZone
         self.lastDrawSource = lastDrawSource
