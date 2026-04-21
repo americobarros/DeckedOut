@@ -40,6 +40,7 @@ struct MainMenuView: View {
     @State private var showingRules: Bool = false
     @ScaledMetric(relativeTo: .title) private var scaledButtonUnit: CGFloat = 10
     private var buttonSize: CGFloat { isExpanded ? scaledButtonUnit * 7 : scaledButtonUnit * 4 }
+    let isIpad = UIDevice.current.userInterfaceIdiom == .pad
   
     
     var body: some View {
@@ -105,7 +106,7 @@ struct MainMenuView: View {
                 .fontDesign(.serif)
                 .foregroundColor(.white)
                 .shadow(color: .white.opacity(0.33), radius: 5)
-                .padding(.top, isExpanded ? 15 : 0) //pretty sure spacing doesnt include safearea - first element
+                .padding(.top, isExpanded ? (isIpad ? 30 : 15) : 0) //pretty sure spacing doesnt include safearea - first element
                 .id(activeGameIndex)
                 .transition(.asymmetric(
                     insertion: .move(edge: titleTransitionEdge).combined(with: .opacity),
@@ -168,7 +169,7 @@ struct MainMenuView: View {
                     //customizationButton //add when we have skins to add!
                 }
                 .padding(.top, isExpanded ? -95 : 10) //moves the button up in expanded mode
-                .padding(.horizontal, isExpanded ? 70 : 30) //moves the button right in expanded mode
+                .padding(.horizontal, isExpanded ? (isIpad ? 300 : 70) : 30) //moves the button right in expanded mode
                 .opacity(isTitleBarHidden ? 0 : 1)
             )
     }
@@ -321,12 +322,13 @@ struct MainMenuView: View {
         VStack {
             backButton
                 .rotationEffect(.degrees(-90))
-                .padding(.vertical, 14)
+                .padding(.vertical)
             startButton
             Spacer()
             deckSection
             Spacer()
             handSizePicker
+            Spacer()
             Spacer()
         }
     }
@@ -371,13 +373,15 @@ struct MainMenuView: View {
     
     private var crazy8sExpandedSubmenu: some View {
         VStack {
+            Spacer()
             backButton
                 .rotationEffect(.degrees(-90))
-                .padding(.vertical, 14)
+                //.padding(.vertical)
             Spacer()
             startButton
             Spacer()
             deckSection
+            Spacer()
             Spacer()
         }
     }
@@ -432,20 +436,20 @@ struct MainMenuView: View {
     
     private var golfExpandedSubmenu: some View {
         VStack {
+            Spacer()
             backButton
                 .rotationEffect(.degrees(-90))
-                .padding(.vertical, 14)
+                //.padding(.vertical)
             Spacer()
             startButton
             Spacer()
-            deckSection
+            golfDeckGrid
+            Spacer()
             Spacer()
         }
     }
     
     private var golfDeckGrid: some View {
-        let isIpad = UIDevice.current.userInterfaceIdiom == .pad
-        
         let verticalSpacing: CGFloat = 20
         let horizontalSpacing: CGFloat = 25
         
@@ -464,7 +468,7 @@ struct MainMenuView: View {
                                 Image("JokerCard")
                                     .resizable()
                                     .aspectRatio(0.7, contentMode: .fit)
-                                    .frame(height: viewModel.presentationStyle == .expanded ? 200 : 145)
+                                    .frame(height: 145)
                                 
                                 Group {
                                     Image(systemName: "bubble.left.fill")
@@ -495,7 +499,7 @@ struct MainMenuView: View {
                                 }
                             }
                             
-                            let cardHeight: CGFloat = viewModel.presentationStyle == .expanded ? 200 : 145
+                            let cardHeight: CGFloat = 145
                             let cardWidth: CGFloat = cardHeight * 0.7
 
                             // Math to collapse the 3x2 grid inward to a single central point
@@ -514,8 +518,8 @@ struct MainMenuView: View {
                                 .frame(height: cardHeight)
                                 .rotationEffect(isAnimated ? Angle(degrees: targetRotation) : Angle(degrees: 0))
                                 .offset(
-                                    x: isAnimated ? (isIpad ? 400 : convergeX) : 0,
-                                    y: isAnimated ? (isIpad ? 300 : verticalShiftToCenter + convergeY) : 0
+                                    x: isAnimated ? (isIpad ? 500 : convergeX) : 0,
+                                    y: isAnimated ? (isIpad ? 250 : verticalShiftToCenter + convergeY) : 0
                                 )
                                 .shadow(radius: 4, x: 2, y: 2)
                                 .opacity(isHidden ? 0 : 1)
@@ -589,7 +593,6 @@ struct MainMenuView: View {
                 isBubblePulsating = false // resets the state so it can animate again next time!
             }
             
-            let isIpad = UIDevice.current.userInterfaceIdiom == .pad
             ForEach(0..<5) { i in
                 Image("cardBackRed")
                     .resizable()

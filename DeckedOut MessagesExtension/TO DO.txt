@@ -19,6 +19,8 @@
 
 -make win transcript move/dynamic
 
+-fix rules view for ipad
+
 -after tapping start game and then trying to go to expanded, it enters game view instead of main menu expanded
 
 -tapping in and out and between games faster in the main menu increasses the fan's upwards animation speed somehow? <- fix
