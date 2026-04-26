@@ -331,6 +331,7 @@ class MessagesViewController: MSMessagesAppViewController {
             }
         }
         
+        self.activeGameEngine = nil //set it back to nil to fix view transition bug. If we don't, willTransition thinks theres an active game when it hasn't been sent yet. activeGameEngine gets reactivated in didRecieve/didSelect anyway
     }
     
     func sendGameMove(gameType: GameType, stateData: Data) {

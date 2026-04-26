@@ -244,12 +244,19 @@ class Crazy8sManager: ObservableObject, GameEngine {
         self.discardPile = []
         self.phase = .animationPhase
         self.userCanDiscard = false
+        self.userNeedsToChooseSuit = false
         self.activeSuitOverride = nil
+        self.hiddenActiveSuitOverride = nil
         self.cardsDrawnThisTurn = 0
         self.cardsOpponentDrew = 0
+        self.userDidDiscard = false
+        self.opponentDidDiscard = false
         self.playerHasWon = false
         self.opponentHasWon = false
+        self.opponentCardPendingDiscard = nil
+        self.opponentCardAnimatingToDiscard = nil
         self.opponentCardAnimatingFromDeck = nil
+        self.hasPerformedInitialLoad = false
         self.turnNumber = 0
     }
     

@@ -45,20 +45,15 @@ struct GolfGameView: View {
     
     var body: some View {
         ZStack {
-            backgroundView
-            
             VStack {
                 opponentHand
                     .rotationEffect(.degrees(180))
                     .padding(.top, 15)
                 Spacer()
-                    .frame(maxWidth: UIScreen.main.bounds.width)
                 deckAndDiscard
                 Spacer()
-                    .frame(maxWidth: UIScreen.main.bounds.width)
                 playerHand
                     .padding(.bottom, 20)
-
             }
 
             // Hovering card overlay
@@ -73,6 +68,9 @@ struct GolfGameView: View {
                     .zIndex(4)
             }
         }
+        .background(
+            backgroundView
+        )
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -122,10 +120,18 @@ struct GolfGameView: View {
     
     // MARK: - View Sections
     private var backgroundView: some View {
-        Image(colorScheme == .dark ? "feltBackgroundDark" : "feltBackgroundLight")
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .ignoresSafeArea()
+        ZStack(alignment: .top) {
+            Image(colorScheme == .dark ? "feltBackgroundDark" : "feltBackgroundLight")
+                .resizable()
+                .scaledToFill()
+                .frame(
+                    width: UIScreen.main.bounds.width,
+                    height: UIScreen.main.bounds.height,
+                    alignment: .top
+                )
+                .clipped()
+        }
+        .ignoresSafeArea()
     }
     
     private var deckAndDiscard: some View {

@@ -1,21 +1,4 @@
--when the opponent wins they instantly get a yellow shadow instead of the shadow being animated in. this also happens during the opponent draw and discard animation. shadow appear/disappear is instant but it would look better if it was gradual
-
--fix the waiting when reopening a message from the menu view. there should always be a delay when entering a game view, and none when the game is already being played
-
--when dragging out of the golf game view it shrinks diagonally for a bit
-
--when opening a new game after a game that was won, the last discard of the old game gets animated before disappearing for some reason
-    -the likely culprit is the willTransition player hand empty check. this is only a problem for Crazy 8s
-
--after tapping start game and then trying to go to expanded, it enters game view instead of main menu expanded
-
--tapping in and out and between games faster in the main menu increasses the fan's upwards animation speed somehow? <- fix
-
--fix index drawn to/discarded from (in gin and maybeee crazy 8s)
-
--delete inits in the player hand extensions and test if fine? (simple refactoring)
-
-***----------*** UPDATE 2.1.1 ***----------***
+-ask for a review upon user win
 
 -fix rules view for ipad
 
@@ -95,6 +78,9 @@ Customizations to sell:
 QOL changes / possible updates:
 -“tap card to play” reminder text in the middle of the screen if user looked at main menu for too long, (repeating opacity animation?)
 -Deck UI # should change based on how many cards there are left in the deck. when we get down to the final 5 cards, it should reflect that
+-fix index drawn to/discarded from (in gin and maybeee crazy 8s)
+-yellow shadows animate in upon game win
+-tapping in and out and between games faster in the main menu increasses the fan's upwards animation speed somehow?
 -fix invite transcript card jitter
 -discard pile should look a little more random rather than a perfectly straight stack of cards?
 -be able to rearrange your cards, (but not draw) during the opponents turn
@@ -106,7 +92,7 @@ QOL changes / possible updates:
 -be able to drag from the discard pile in Gin as well as tap?
 -add auto-sorting capability?
 
--keep an eye on the game resumption bug, but blocking didSelect/Recieve from processing transcript views seems to solve it
+-delete inits in the player hand extensions and test if fine? (simple refactoring)
 -Add a notice that Aces are not high cards in gin rummy?
 -make invite view wait on "GIN!"?
 -restart button from within the win view?

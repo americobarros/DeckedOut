@@ -226,6 +226,7 @@ class GinRummyManager: ObservableObject, GameEngine {
         self.indexDiscardedFrom = nil
         self.playerHasWon = false
         self.opponentHasWon = false
+        self.hasPerformedInitialLoad = false
         self.turnNumber = 0
     }
     

@@ -263,6 +263,7 @@ class GolfManager: ObservableObject, GameEngine {
         self.indexReplaced = nil
         self.playerHasWon = false
         self.opponentHasWon = false
+        self.hasPerformedInitialLoad = false
         self.turnNumber = 0
         self.playerFaceUpIndices = []
         self.opponentFaceUpIndices = []

@@ -29,6 +29,7 @@ struct Crazy8sOpponentHandView: View {
     @State private var animatingRotation: Double = 0 //for when the card is being animated
     @State private var normalRotation: Double = 180 //default to face down
     @State private var cardWaitingToAnimate: Card?
+    @State private var animatingShadowRadius: CGFloat = 0
     
     // Card sizing
     private var cardWidth: CGFloat { cards.count >= 10 ? 98 : 101.5 }
@@ -52,7 +53,7 @@ struct Crazy8sOpponentHandView: View {
                     .rotationEffect(isAnimating ? animationRotationCorrection : angle)
                     .offset(y: yOffset)
                     .offset(isAnimating ? animationOffset : .zero)
-                    .shadow(color: game.opponentHasWon ? .red : .black.opacity(0.25), radius: game.opponentHasWon ? 10 : (isAnimating ? 0 : 20))
+                    .shadow(color: game.opponentHasWon ? .red : .black.opacity(0.25), radius: game.opponentHasWon ? 10 : (isAnimating ? animatingShadowRadius : 20))
                     .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1),
                         value: game.opponentHasWon || game.playerHasWon // trigger when this value changes
                     )
@@ -117,14 +118,16 @@ struct Crazy8sOpponentHandView: View {
         animationOffset = offsetToDraw
         animatingRotation = 180
         animationRotationCorrection = .degrees(0)
+        animatingShadowRadius = 0
         self.cardWaitingToAnimate = nil
-        
+
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
             animationOffset = .zero
             animationRotationCorrection = fanAngle
             animatingRotation = 180
+            animatingShadowRadius = 20
         }
-            
+
         // Clear draw animation state
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.animatingCard = nil
@@ -144,14 +147,16 @@ struct Crazy8sOpponentHandView: View {
         animatingRotation = -180 //card is face down
         animationOffset = .zero
         animationRotationCorrection = fanAngle
-        
+        animatingShadowRadius = 20
+
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
             animatingRotation = 0 //card gets discarded face up
             animationOffset = offsetToDiscard
             animationRotationCorrection = .degrees(0)
+            animatingShadowRadius = 0
             game.activeSuitOverride = game.hiddenActiveSuitOverride
         }
-            
+
         // Resolve animation state
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             animatingCard = nil
