@@ -830,7 +830,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crazy 8s"
+            "value" : "Ochos Locos"
           }
         },
         "fr" : {
@@ -848,13 +848,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crazy 8s"
+            "value" : "Otto Americano"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8"
+            "value" : "クレイジーエイト"
           }
         },
         "ko" : {
@@ -866,7 +866,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Olsen"
+            "value" : "Vri-åtter"
           }
         },
         "nl" : {
@@ -902,13 +902,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "疯狂八点"
+            "value" : "疯狂8"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瘋狂八點"
+            "value" : "瘋狂8"
           }
         }
       }
@@ -930,7 +930,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reglas de Crazy 8s"
+            "value" : "Reglas de Ochos Locos"
           }
         },
         "fr" : {
@@ -948,13 +948,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regole di Crazy 8s"
+            "value" : "Regole di Otto Americano"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8のルール"
+            "value" : "クレイジーエイトのルール"
           }
         },
         "ko" : {
@@ -966,7 +966,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Olsen-regler"
+            "value" : "Vri-åtter-regler"
           }
         },
         "nl" : {
@@ -1002,13 +1002,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "疯狂八点规则"
+            "value" : "疯狂8规则"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瘋狂八點規則"
+            "value" : "瘋狂8規則"
           }
         }
       }
@@ -1030,7 +1030,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¡Ochos locos!"
+            "value" : "¡Ochos Locos!"
           }
         },
         "fr" : {
@@ -1054,7 +1054,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8！"
+            "value" : "エイト！"
           }
         },
         "ko" : {
@@ -1102,13 +1102,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "疯狂八点！"
+            "value" : "疯狂8！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "瘋狂八點！"
+            "value" : "瘋狂8！"
           }
         }
       }
@@ -2036,7 +2036,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gin Rommé"
+            "value" : "Gin Rummy"
           }
         },
         "es" : {
@@ -2136,7 +2136,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gin Rommé Regeln"
+            "value" : "Gin Rummy Regeln"
           }
         },
         "es" : {
@@ -2316,13 +2316,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "纸牌高尔夫"
+            "value" : "高尔夫纸牌"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "高爾夫"
+            "value" : "高爾夫紙牌"
           }
         }
       }
@@ -2416,13 +2416,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "纸牌高尔夫规则"
+            "value" : "高尔夫纸牌规则"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "紙牌高爾夫規則"
+            "value" : "高爾夫紙牌規則"
           }
         }
       }
@@ -2748,7 +2748,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¡Gané al Crazy 8s!"
+            "value" : "¡Gané a Ochos Locos!"
           }
         },
         "fr" : {
@@ -2766,13 +2766,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ho vinto a Crazy 8s!"
+            "value" : "Ho vinto a Otto Americano!"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8で勝利しました！"
+            "value" : "クレイジーエイトで勝ちました！"
           }
         },
         "ko" : {
@@ -2784,7 +2784,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jeg vant i Olsen!"
+            "value" : "Jeg vant i Vri-åtter!"
           }
         },
         "nl" : {
@@ -2820,13 +2820,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我在疯狂八点中赢啦！"
+            "value" : "我在疯狂8中赢啦！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我在瘋狂八點中獲勝！"
+            "value" : "我在瘋狂8中獲勝！"
           }
         }
       }
@@ -3022,13 +3022,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我在纸牌高尔夫中赢啦！"
+            "value" : "我在高尔夫纸牌中赢啦！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "我在紙牌高爾夫中贏啦！"
+            "value" : "我在高爾夫紙牌中贏啦！"
           }
         }
       }
@@ -3426,13 +3426,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "纸牌高尔夫最后一轮！"
+            "value" : "高尔夫纸牌最后一轮！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "紙牌高爾夫最後一輪！"
+            "value" : "高爾夫紙牌最後一輪！"
           }
         }
       }
@@ -3455,7 +3455,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¡Juguemos al Crazy 8s!"
+            "value" : "¡Juguemos a Ochos Locos!"
           }
         },
         "fr" : {
@@ -3473,13 +3473,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Giochiamo a Crazy 8s!"
+            "value" : "Giochiamo a Otto Americano!"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8で遊ぼう！"
+            "value" : "クレイジーエイトで遊ぼう！"
           }
         },
         "ko" : {
@@ -3491,7 +3491,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La oss spille Olsen!"
+            "value" : "La oss spille Vri-åtter!"
           }
         },
         "nl" : {
@@ -3527,13 +3527,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "来玩疯狂八点吧！"
+            "value" : "来玩疯狂8吧！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "來玩瘋狂八點吧！"
+            "value" : "來玩瘋狂8吧！"
           }
         }
       }
@@ -3550,7 +3550,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spielen wir Gin!"
+            "value" : "Spielen wir Gin Rummy!"
           }
         },
         "es" : {
@@ -3592,7 +3592,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La oss spille Gin!"
+            "value" : "La oss spille Gin Rummy!"
           }
         },
         "nl" : {
@@ -3729,13 +3729,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "来玩纸牌高尔夫吧！"
+            "value" : "来玩高尔夫纸牌吧！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "來玩紙牌高爾夫吧！"
+            "value" : "來玩高爾夫紙牌吧！"
           }
         }
       }
@@ -5653,13 +5653,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你在纸牌高尔夫中赢啦！"
+            "value" : "你在高尔夫纸牌中赢啦！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "您在紙牌高爾夫中獲勝！"
+            "value" : "您在高爾夫紙牌中獲勝！"
           }
         }
       }
@@ -5987,7 +5987,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "¡Tu turno en Crazy 8s!"
+            "value" : "¡Te toca en Ochos Locos!"
           }
         },
         "fr" : {
@@ -6005,13 +6005,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tocca a te a Crazy 8s!"
+            "value" : "Tocca a te a Otto Americano!"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "クレイジー8であなたの番です！"
+            "value" : "クレイジーエイトであなたの番です！"
           }
         },
         "ko" : {
@@ -6023,7 +6023,7 @@
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Din tur i Olsen!"
+            "value" : "Din tur i Vri-åtter!"
           }
         },
         "nl" : {
@@ -6059,13 +6059,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "疯狂八点该你啦！"
+            "value" : "疯狂8该你啦！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "輪到您玩瘋狂八點了！"
+            "value" : "輪到您玩瘋狂8了！"
           }
         }
       }
@@ -6261,13 +6261,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "纸牌高尔夫该你啦！"
+            "value" : "高尔夫纸牌该你啦！"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "輪到您玩紙牌高爾夫了！"
+            "value" : "輪到您玩高爾夫紙牌了！"
           }
         }
       }

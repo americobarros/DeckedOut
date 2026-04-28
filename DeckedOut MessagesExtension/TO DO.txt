@@ -2,6 +2,8 @@
 
 -fix rules view for ipad
 
+-review localized "start game" button sizes
+
 ***----------*** UPDATE 2.1.2 ***----------***
 
 -Add Accessibility features
