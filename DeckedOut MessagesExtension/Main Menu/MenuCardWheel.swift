@@ -72,7 +72,7 @@ struct MenuCardWheel: View {
                 let isCenter = abs(distance) < 0.5 // If distance is between -0.5 and 0.5, it's the primary card right now
                 let yOffset = getCurrentYOffset(for: distance)
                 
-                CardView(frontImage: game.logoCard, cardHeight: cardHeight, rotation: isCenter ? 0 : 180)
+                CardView(frontImage: game.localizedLogoCard, cardHeight: cardHeight, rotation: isCenter ? 0 : 180)
                     .zIndex(Double(visibleCount) - abs(distance))
                     .rotationEffect(.degrees(distance * fanningAngle))
                     .offset(y: yOffset)

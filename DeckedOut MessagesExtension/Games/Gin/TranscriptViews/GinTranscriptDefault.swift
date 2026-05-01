@@ -20,9 +20,12 @@ struct GinTranscriptDefault: View {
     var body: some View {
         VStack {
             
-            GinTranscriptPlayerHand(cards: opponentWon ? opponentsHand : playersHand, playerWon: playerWon, opponentWon: opponentWon)
-                .offset(y: opponentWon ? -30 : 50)
+            Color.clear
                 .frame(height: 150)
+                .overlay { //the crazy 8s player hand expands. making it an overlay means its width expansion does not bubble up and effect the VStacks width
+                    GinTranscriptPlayerHand(cards: opponentWon ? opponentsHand : playersHand, playerWon: playerWon, opponentWon: opponentWon)
+                        .offset(y: opponentWon ? -30 : 50)
+                }
                 
             CaptionTextView(isWaiting: isFromMe, altText: opponentWon || playerWon ? "I won in Gin!" : "Your turn in Gin!")
             
@@ -38,9 +41,10 @@ struct GinTranscriptDefault: View {
                     }
             }
         )
-        .background(Image("feltBackgroundLight")
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-        )
+        .background(
+            Image("feltBackgroundLight")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+            )
     }
 }

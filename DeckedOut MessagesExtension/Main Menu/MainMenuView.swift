@@ -714,4 +714,9 @@ struct MenuGame: Identifiable {
     var title: String
     var logoCard: String // The front of the card
     var wins: Int = 0
+
+    var localizedLogoCard: String {
+        let isSimplifiedChinese = Locale.preferredLanguages.first?.hasPrefix("zh-Hans") == true
+        return isSimplifiedChinese ? logoCard + "Chinese" : logoCard
+    }
 }

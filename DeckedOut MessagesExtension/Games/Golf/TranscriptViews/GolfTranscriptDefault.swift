@@ -41,7 +41,6 @@ struct GolfTranscriptDefault: View {
     private var opponentWon: Bool { gameOver && !playerWon }
     
     var body: some View {
-        
         VStack {
             
             if playerWon || opponentWon {

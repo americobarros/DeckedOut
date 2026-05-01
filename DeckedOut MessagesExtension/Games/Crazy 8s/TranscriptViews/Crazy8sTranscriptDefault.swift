@@ -11,7 +11,6 @@ struct Crazy8sTranscriptDefault: View {
     let gameState: Crazy8sGameState
     let isFromMe: Bool
     var onHeightChange: ((CGFloat) -> Void)? = nil
-    @State private var initialBackgroundSize: CGSize = .zero //to prevent instant background resizing when Crazy8sTranscriptPlayerHand resizes beyond the current horizontal width
 
     private var playersHand: [Card] { isFromMe ? gameState.senderHand : gameState.receiverHand }
     private var opponentsHand: [Card] { isFromMe ? gameState.receiverHand : gameState.senderHand }
@@ -19,16 +18,18 @@ struct Crazy8sTranscriptDefault: View {
     private var opponentWon: Bool { opponentsHand.count == 0 }
     
     var body: some View {
-        
         VStack {
 
             if playerWon || opponentWon {
                 GameOverTranscriptView(playerWon: playerWon)
                 
             } else {
-                Crazy8sTranscriptPlayerHand(cards: playersHand)
-                    .offset(y: opponentWon ? -30 : 50)
+                Color.clear
                     .frame(height: 150)
+                    .overlay { //the crazy 8s player hand expands. making it an overlay means its width expansion does not bubble up and effect the VStacks width
+                        Crazy8sTranscriptPlayerHand(cards: playersHand)
+                            .offset(y: opponentWon ? -30 : 50)
+                    }
             }
                 
             CaptionTextView(isWaiting: isFromMe, altText: opponentWon || playerWon ? "I won in Crazy 8s!" : "Your turn in Crazy 8s!")
@@ -38,9 +39,6 @@ struct Crazy8sTranscriptDefault: View {
             GeometryReader { geometry in
                 Color.clear
                     .onAppear {
-                        if initialBackgroundSize == .zero {
-                            initialBackgroundSize = geometry.size
-                        }
                         onHeightChange?(geometry.size.height)
                     }
                     .onChange(of: geometry.size.height) { _, newHeight in
@@ -52,10 +50,6 @@ struct Crazy8sTranscriptDefault: View {
             Image("feltBackgroundLight")
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(
-                    width: initialBackgroundSize.width > 0 ? initialBackgroundSize.width : nil,
-                    height: initialBackgroundSize.height > 0 ? initialBackgroundSize.height : nil
-                )
         )
     }
 }

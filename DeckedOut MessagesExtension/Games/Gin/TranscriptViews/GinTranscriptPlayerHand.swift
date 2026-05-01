@@ -111,24 +111,31 @@ struct GinTranscriptPlayerHand: View {
         return isFullyFlippingCard(index) ? 180.0 : 90.0
     }
     
+    private var isChinese: Bool {
+        let code = Locale.current.language.languageCode?.identifier
+        return code == "zh" //both simplified and traditional use the same letters to describe Gin Rummy
+    }
+
     private func backLetter(for index: Int) -> String? {
+        let letters: [String] = isChinese ? ["金", "拉", "米"] : ["G", "I", "N"]
+
         if cards.count == 7 {
             switch index {
-            case 1: return "G"
-            case 3: return "I"
-            case 5: return "N"
+            case 1: return letters[0]
+            case 3: return letters[1]
+            case 5: return letters[2]
             default: return nil
             }
         } else if cards.count == 10 {
             switch index {
-            case 2: return "G"
-            case 4: return "I"
-            case 6: return "N"
+            case 2: return letters[0]
+            case 4: return letters[1]
+            case 6: return letters[2]
             case 8: return "!"
             default: return nil
             }
         }
-        
+
         return nil
     }
     

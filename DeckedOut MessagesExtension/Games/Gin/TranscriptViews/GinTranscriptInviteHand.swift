@@ -8,7 +8,26 @@
 import SwiftUI
 
 struct GinTranscriptInviteHand: View {
-    let words = ["LETS", "PLAY", "GIN!"]
+    var words: [String] {
+        // Get the user's top preferred language, default to English if unavailable
+        let currentLanguage = Locale.preferredLanguages.first ?? "en"
+        
+        if currentLanguage.hasPrefix("zh-Hant") { // Traditional Chinese
+            return ["讓我們", "一起玩", "金拉米"]
+
+        } else if currentLanguage.hasPrefix("zh-Hans") { // Simplified Chinese
+            return ["让我们", "一起玩", "金拉米"]
+
+        } else if currentLanguage.hasPrefix("tr") { // Turkish
+            return ["HADI", "GIN!", "OYNA"]
+
+        } else if currentLanguage.hasPrefix("de") { // German
+            return ["ZEIT", "FURS", "GIN!"]
+
+        } else { // Default (English)
+            return ["LETS", "PLAY", "GIN!"]
+        }
+    }
     
     // State to track which word index we are on
     @State private var currentWordIndex = 0
@@ -23,24 +42,30 @@ struct GinTranscriptInviteHand: View {
     private let cardHeight: CGFloat = 120
     private let fanningAngle: Double = 5
     
+    var charCount: Int {
+        words.map(\.count).max() ?? 0
+    }
+
     var body: some View {
-        HStack(spacing: -30) {
-            ForEach(0..<4, id: \.self) { index in
-                
+        HStack(spacing: charCount == 4 ? -30 : -25) {
+            ForEach(0..<charCount, id: \.self) { index in
+
                 // Calculate the Current Character (Front)
                 let currentWord = words[currentWordIndex]
                 let frontChar = getChar(from: currentWord, at: index)
-                
+
                 // Calculate the Next Character (Back)
-                let nextIndex = (currentWordIndex + 1) % 3
+                let nextIndex = (currentWordIndex + 1) % words.count
                 let nextWord = words[nextIndex]
                 let backChar = getChar(from: nextWord, at: index)
                 
+                let center = Double(charCount - 1) / 2.0
+
                 LetterCardView(frontChar: frontChar, backChar: backChar, isFlipped: isFlipped)
                     .frame(width: cardWidth, height: cardHeight)
                     .zIndex(Double(index))
-                    .rotationEffect(.degrees((Double(index) - 1.5) * fanningAngle))
-                    .offset(y: abs((Double(index) - 1.5) * 8))
+                    .rotationEffect(.degrees((Double(index) - center) * fanningAngle))
+                    .offset(y: abs((Double(index) - center) * 8))
                     .animation(
                         .spring(response: 0.6, dampingFraction: 0.7)
                         .delay(Double(index) * 0.2),

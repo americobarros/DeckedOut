@@ -1,10 +1,8 @@
--resolve ties in golf
+-resolve ties in golf?
 
 -fix rules view for ipad
 
 -review localized "start game" button sizes
-
-***----------*** UPDATE 2.1.2 ***----------***
 
 -Add Accessibility features
     -Larger Text (mostly complete, add scrollable rules view for truly massive text)
@@ -14,7 +12,7 @@
     -Dark Interface??
     -Sufficient Contrast??
 
-***----------*** UPDATE 2.2.0 ***----------***
+***----------*** UPDATE 2.3.0 ***----------***
 
 -Add group chat compatibility! increases adoption rate!!
 
