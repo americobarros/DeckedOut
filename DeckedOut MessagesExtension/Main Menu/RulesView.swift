@@ -12,6 +12,9 @@ struct RulesView: View {
     var isExpanded: Bool = false
     var onDismiss: () -> Void
     
+    @State private var currentPage: Int = 0
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1.0 //padding needs to shrink as text size increases. iOS does not do this automatically
+    
     var body: some View {
         ZStack {
             // Dimmed tappable background
@@ -39,25 +42,41 @@ struct RulesView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, isExpanded ? 20 : 12)
-                //.padding(.bottom, 12)
+                
+                // The SF Symbol Icon
+                if !pages.isEmpty {
+                    pages[currentPage].symbol.image
+                        .font(.system(size: 45))
+                        .frame(width: 50, height: 50)
+                        .foregroundStyle(
+                            .white,     // Primary (Layer 1)
+                            Color(red: 255 / 255.0, green: 66 / 255.0, blue: 69 / 255.0), // Secondary (Layer 2)
+                            .black      // Tertiary (Layer 3)
+                        )
+                        .applyGradientSymbolColor()
+                        //.shadow(color: .white.opacity(0.3), radius: 3)
+                        .padding(.top, (isExpanded ? 24 : 12) / pow(scale, 3))
+                        .contentTransition(.symbolEffect(.replace))
+                }
                 
                 // Paged rule pages
-                TabView {
+                TabView(selection: $currentPage) {
                     ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                         RulePage(
-                            imageName: page.image,
+                            //imageName: page.image,
                             title: page.title,
                             description: page.description,
                             pageNumber: index + 1,
                             totalPages: pages.count,
                             isExpanded: isExpanded
                         )
+                        .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
             }
-            .frame(maxWidth: 350, maxHeight: 350)
+            .frame(maxWidth: 350, maxHeight: 350) //used to be inifinite width but we have to limit for ipad
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(.ultraThinMaterial)
@@ -88,32 +107,32 @@ struct RulesView: View {
         }
     }
     
-    private var pages: [(image: String, title: LocalizedStringKey, description: LocalizedStringKey)] {
+    private var pages: [(symbol: SymbolType, title: LocalizedStringKey, description: LocalizedStringKey)] {
         switch gameType {
         case .ginRummy:
             return [
-                ("square.stack.3d.up", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
-                ("arrow.2.circlepath", "Your Turn", "Draw one card from either the deck or the discard pile, then discard one card from your hand."),
-                ("rectangle.3.group", "Melds", "Arrange your cards into sets (same rank) or runs (consecutive cards of the same suit) of 3 or more."),
-                ("crown.fill", "How to Win", "Once all your cards form valid melds, you win! The fewer turns it takes, the better.")
+                (.custom("colored.square.stack.3d.up"), "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
+                (.system("arrow.trianglehead.2.clockwise.rotate.90"), "Your Turn", "Draw one card from either the deck or the discard pile, then discard one card from your hand."),
+                (.custom("colored.rectangle.3.group"), "Melds", "Arrange your cards into sets (same rank) or runs (consecutive cards of the same suit) of 3 or more."),
+                (.system("crown.fill"), "How to Win", "Once all your cards form valid melds, you win! The fewer turns it takes, the better.")
             ]
         case .crazy8s:
             return [
-                ("square.stack.3d.up", "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
-                ("arrow.2.circlepath", "Your Turn", "Discard a card that matches the top discard's rank or suit. If you can't, draw from the deck. If you draw three cards and still can't discard, your turn is skipped."),
-                ("8.circle.fill", "Crazy 8s!", "Eights are wild! Play an 8 at any time and choose the suit for the next player to follow."),
-                ("crown.fill", "How to Win", "Be the first player to get rid of all your cards!")
+                (.custom("colored.square.stack.3d.up"), "The Deal", "Each player is dealt a hand of cards. The remaining cards form the draw pile, and the top card starts the discard pile."),
+                (.system("arrow.trianglehead.2.clockwise.rotate.90"), "Your Turn", "Discard a card that matches the discard's rank or suit. If you can't, draw from the deck. If you draw three cards and still can't discard, your turn is skipped."),
+                (.system("8.circle.fill"), "Crazy 8s!", "Eights are wild! Play an 8 at any time and choose the suit for the next player to follow."),
+                (.system("crown.fill"), "How to Win", "Be the first player to get rid of all of your cards!")
             ]
         case .golf:
             return [
-                ("rectangle.3.group", "The Layout", "Each player gets 6 cards arranged in a grid. Most start face down, with 2 cards randomly revealed."),
-                ("arrow.2.circlepath", "Your Turn", "Draw a card from the deck or the discard pile, then swap it with any card in your grid. The swapped card is discarded."),
-                ("figure.golf", "Scoring", "Aces are 1 point, number cards are face value, Jacks and Queens are 10, and Kings are 0. Matching pairs in the same column cancel out!"),
-                ("crown.fill", "How to Win", "The player with the lowest total score wins. If there is a tie, the player who went out first loses.")
+                (.custom("colored.rectangle.grid.3x2"), "The Layout", "Each player gets 6 cards arranged in a grid. Most start face down, with 2 cards randomly revealed."),
+                (.system("arrow.trianglehead.2.clockwise.rotate.90"), "Your Turn", "Draw a card from the deck or the discard pile, then swap it with any card in your grid. The swapped card is discarded."),
+                (.system("figure.golf"), "Scoring", "Aces are 1 point, number cards are face value, Jacks and Queens are 10, and Kings are 0. Matching pairs in the same column cancel out!"),
+                (.system("crown.fill"), "How to Win", "The player with the lowest total score wins. If there is a tie, the player who went out first loses.")
             ]
         case .unknown:
             return [
-                ("questionmark", "Unknown Game", "No rules available for this game.")
+                (.system("questionmark"), "Unknown Game", "No rules available for this game.")
             ]
         }
     }
@@ -121,7 +140,7 @@ struct RulesView: View {
 
 // MARK: - Rule Page
 private struct RulePage: View {
-    var imageName: String
+    //var imageName: String
     var title: LocalizedStringKey
     var description: LocalizedStringKey
     var pageNumber: Int
@@ -131,18 +150,19 @@ private struct RulePage: View {
     
     var body: some View {
         VStack(spacing: 12 / pow(scale, 3)) {
-            Image(systemName: imageName)
+            /*Image(systemName: imageName)
                 .resizable()
                 .scaledToFit()
                 .frame(height: 50)
                 .foregroundStyle(.white.opacity(0.85))
                 .shadow(color: .white.opacity(0.3), radius: 3)
-                .padding(.top, (isExpanded ? 24 : 8) / pow(scale, 3))
+                .padding(.top, (isExpanded ? 24 : 8) / pow(scale, 3))*/
             
             Text(title)
                 .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(.white)
+                .padding(.top, 8 / pow(scale, 3))
             
             Text(description)
                 .font(.subheadline)
@@ -153,5 +173,30 @@ private struct RulePage: View {
             Spacer()
         }
         .padding(.top, 8 / pow(scale, 3))
+    }
+}
+
+enum SymbolType {
+    case system(String)
+    case custom(String)
+    
+    var image: Image {
+        switch self {
+        case .system(let name):
+            return Image(systemName: name)
+        case .custom(let name):
+            return Image(name)
+        }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func applyGradientSymbolColor() -> some View {
+        if #available(iOS 26.0, *) {
+            self.symbolColorRenderingMode(.gradient)
+        } else {
+            self // Returns the view without the modifier on older versions
+        }
     }
 }
