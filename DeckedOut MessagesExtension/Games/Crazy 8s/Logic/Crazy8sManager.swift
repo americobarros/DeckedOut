@@ -7,8 +7,8 @@
 
 import Foundation
 
-// The game snapshot for sending the game over iMessage
-struct Crazy8sGameState: Codable {
+// V1: Legacy 2-player game snapshot
+struct Crazy8sLegacyGameState: Codable, BasicGameState {
     let sessionID: UUID
     let deck: [Card]
     let discardPile: [Card]
@@ -20,10 +20,26 @@ struct Crazy8sGameState: Codable {
     let turnNumber: Int
 }
 
+// V2: Seat-based groupchat multiplayer game snapshot
+struct Crazy8sV2GameState: Codable, V2GameState {
+    let sessionID: UUID
+    let deck: [Card]
+    let discardPile: [Card]
+    let seats: [UUID]
+    let hands: [[Card]]
+    let currentSeatIndex: Int
+    let turnNumber: Int
+    let cardsDrawnByLastPlayer: Int
+    let lastPlayerDidDiscard: Bool
+    let activeSuitOverride: Suit?
+}
+
 // MARK: The Game Engine
 class Crazy8sManager: ObservableObject, GameEngine {
     static let shared = Crazy8sManager()
-    
+    static let unclaimedSeat = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
+    @Published var extensionWidth: CGFloat = 375
     @Published var sessionID: UUID? = nil
     @Published var deck: [Card] = []
     @Published var discardPile: [Card] = []
@@ -46,11 +62,30 @@ class Crazy8sManager: ObservableObject, GameEngine {
     @Published var opponentCardAnimatingToDiscard: Card? = nil       // The trigger the view actually watches
     @Published var opponentCardAnimatingFromDeck: Card? = nil        // The trigger for draw animations
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
-    
+
+    // Multiplayer (V2) properties
+    var seats: [UUID] = []
+    var mySeatIndex: Int = 0
+    @Published var allHands: [[Card]] = []
+    var isSinglePlayer: Bool = false
+    var isSpectating: Bool = false
+    @Published var isAnimatingOpponentTurn: Bool = false
+    var animatingOpponentSeat: Int = 0
+    @Published var isJoiningPhase: Bool = false
+    @Published var isSettlingAfterJoin: Bool = false
+    var pendingJoinState: Crazy8sV2GameState? = nil
+    var localParticipantID: UUID? = nil
+
+    var needsToJoin: Bool {
+        guard isJoiningPhase, let lpID = localParticipantID else { return false }
+        return !seats.contains(lpID)
+    }
+
     private init() {} // values are already initialized here ^
-    
-    // The View Controller will listen to this to know when to send the message
+
+    // The View Controller will listen to these to know when to send the message
     var onTurnCompleted: ((Data, GameType) -> Void)?
+    var onJoinCompleted: ((Data, GameType) -> Void)?
     
     enum TurnPhase {
         case animationPhase // Animating the opponents turn before your own
@@ -88,7 +123,7 @@ class Crazy8sManager: ObservableObject, GameEngine {
         
         if cardsDrawnThisTurn == 3 && !userCanDiscard { //if youve drawn your 3rd card and still cannot play it, the user has to pass
             phase = .idlePhase
-            sendGameState()
+            sendGameStateSwitch()
         }
     }
     
@@ -135,11 +170,11 @@ class Crazy8sManager: ObservableObject, GameEngine {
             phase = .idlePhase
         }
         
-        sendGameState()
+        sendGameStateSwitch()
     }
     
     func opponentDrawFromDeck() {
-        guard phase == .animationPhase, !deck.isEmpty else { return }
+        guard phase == .animationPhase || isAnimatingOpponentTurn, !deck.isEmpty else { return }
         
         let card = deck.popLast()!
         opponentHand.append(card)
@@ -147,17 +182,22 @@ class Crazy8sManager: ObservableObject, GameEngine {
     }
     
     func opponentDiscardCard(card: Card) { //pseudo discard
-        guard phase == .animationPhase else { return }
-        
+        guard phase == .animationPhase || isAnimatingOpponentTurn else { return }
+
         opponentHand.removeLast()
         discardPile.append(card)
         SoundManager.instance.playCardSlap()
-        
+
         opponentHasWon = opponentHand.isEmpty
         if opponentHasWon {
             SoundManager.instance.playGameEnd(didWin: false)
+            isAnimatingOpponentTurn = false
             phase = .gameEndPhase
             isGameOver = true
+        } else if isAnimatingOpponentTurn {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.isAnimatingOpponentTurn = false
+            }
         } else {
             phase = .mainPhase
             checkHandPlayability()
@@ -181,29 +221,26 @@ class Crazy8sManager: ObservableObject, GameEngine {
         return
     }
     
-    func loadState(from data: Data, isPlayersTurn: Bool, conversationID: String, isExplicitChange: Bool = false) {
-        guard let state = try? JSONDecoder().decode(Crazy8sGameState.self, from: data) else {
+    func loadState(from data: Data, isPlayersTurn: Bool, localParticipantID: UUID = UUID(), isSinglePlayer: Bool = true, conversationID: String, isExplicitChange: Bool = false) {
+        if isSinglePlayer == false, let v2State = try? JSONDecoder().decode(Crazy8sV2GameState.self, from: data) {
+            loadV2State(state: v2State, isPlayersTurn: isPlayersTurn, localParticipantID: localParticipantID, conversationID: conversationID, isExplicitChange: isExplicitChange)
+        } else if let legacyState = try? JSONDecoder().decode(Crazy8sLegacyGameState.self, from: data) {
+            loadLegacyState(state: legacyState, isPlayersTurn: isPlayersTurn, conversationID: conversationID, isExplicitChange: isExplicitChange)
+        } else {
             print("Error: Failed to decode Crazy8sGameState from data.")
-            return
         }
-        
-        let isInitialLoad = (self.sessionID == nil) //is the game manager currently empty? (user is on main menu and hasnt tapped a bubble yet)
-        let isSameSession = (self.sessionID == state.sessionID) //is this the game we are already looking at?
-        let isNewTurn = state.turnNumber > self.turnNumber //is it a newer turn than what we have in memory?
-        
-        guard isInitialLoad || (isSameSession && isNewTurn) || isExplicitChange else { //(if any are true) allow if: (We haven't loaded a session yet) OR (It is the same session AND theres progress in the session) OR (the user is explicitly changing the game session)
-            /*if !isSameSession && !isInitialLoad {
-                print("Action Blocked: User tried to load session \(state.sessionID) while active in \(self.sessionID!)")
-            } else {
-                print("Action Blocked: Turn \(state.turnNumber) is not newer than \(self.turnNumber)")
-            }*/
-            return
-        }
-        
-        if isExplicitChange {
-            resetToInit() //may not be neccesary, but better safe than sorry (this is open for review)
-        }
-        
+    }
+
+    private func loadLegacyState(state: Crazy8sLegacyGameState, isPlayersTurn: Bool, conversationID: String, isExplicitChange: Bool) {
+        let isInitialLoad = (self.sessionID == nil)
+        let isSameSession = (self.sessionID == state.sessionID)
+        let isNewTurn = state.turnNumber > self.turnNumber
+
+        guard isInitialLoad || (isSameSession && isNewTurn) || isExplicitChange else { return }
+
+        if isExplicitChange { resetToInit() }
+
+        self.isSinglePlayer = true
         self.sessionID = state.sessionID
         self.turnNumber = state.turnNumber
         self.deck = state.deck
@@ -239,6 +276,103 @@ class Crazy8sManager: ObservableObject, GameEngine {
             }
         }
     }
+
+    private func loadV2State(state: Crazy8sV2GameState, isPlayersTurn: Bool, localParticipantID: UUID, conversationID: String, isExplicitChange: Bool) {
+        let isInitialLoad = (self.sessionID == nil)
+        let isSameSession = (self.sessionID == state.sessionID)
+        let isNewTurn = state.turnNumber > self.turnNumber
+
+        guard isInitialLoad || (isSameSession && isNewTurn) || isExplicitChange else {
+            return
+        }
+
+        if isExplicitChange { resetToInit() }
+
+        self.localParticipantID = localParticipantID
+        self.isSinglePlayer = false
+        self.sessionID = state.sessionID
+        self.turnNumber = state.turnNumber
+        self.seats = state.seats
+        self.deck = state.deck
+        self.discardPile = state.discardPile
+        self.allHands = state.hands
+
+        // Joining phase: unclaimed seats remain
+        if state.seats.contains(Self.unclaimedSeat) {
+            self.isJoiningPhase = true
+            self.pendingJoinState = state
+            let emptySeatCount = state.seats.filter { $0 == Self.unclaimedSeat }.count
+
+            if let seatIndex = state.seats.firstIndex(of: localParticipantID) {
+                // User already has a seat — set up the board
+                self.mySeatIndex = seatIndex
+                self.playerHand = state.hands[seatIndex]
+            } else if emptySeatCount == 1 {
+                // User hasn't joined and there is exactly one seat left
+                Task { @MainActor in
+                    self.performJoin(shouldBroadcast: false)
+                }
+                return
+            }
+
+            // user already joined, OR user hasn't joined but seats != 1
+            self.phase = .idlePhase
+            return
+
+        } // else...
+        
+        // The game has started!
+        self.isJoiningPhase = false
+
+        // The player inserted their localParticipantIdentifier during the join phase
+        guard let seatIndex = state.seats.firstIndex(of: localParticipantID) else { // else the user hasnt joined this game. (Joined the groupchat after start?)
+            self.playerHand = []
+            self.isSpectating = true
+            self.phase = .idlePhase
+            return
+        }
+
+        self.mySeatIndex = seatIndex
+        self.cardsDrawnThisTurn = 0
+        self.userDidDiscard = false
+        self.opponentDidDiscard = state.lastPlayerDidDiscard
+        if !opponentDidDiscard {
+            self.activeSuitOverride = state.activeSuitOverride
+        } else {
+            hiddenActiveSuitOverride = state.activeSuitOverride
+        }
+
+        let isMyTurn = (state.currentSeatIndex == seatIndex)
+        self.playerHand = state.hands[seatIndex]
+        let playerBeforeUser = (seatIndex - 1 + state.seats.count) % state.seats.count
+
+        if isMyTurn {
+            self.isSpectating = false
+            self.isAnimatingOpponentTurn = false
+            self.animatingOpponentSeat = playerBeforeUser
+            let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: playerBeforeUser)
+            if hasVisualsToAnimate {
+                phase = .animationPhase
+            } else { //it is the first turn
+                phase = .mainPhase
+                checkHandPlayability()
+            }
+        } else { //it is not the current users turn
+            self.isSpectating = true
+            playerHasWon = self.playerHand.isEmpty
+            if playerHasWon {
+                phase = .gameEndPhase
+                SoundManager.instance.playGameEnd(didWin: true)
+                isGameOver = true
+            } else {
+                let lastPlayerSeat = (state.currentSeatIndex - 1 + state.seats.count) % state.seats.count
+                self.animatingOpponentSeat = lastPlayerSeat
+                let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: lastPlayerSeat)
+                phase = .idlePhase
+                isAnimatingOpponentTurn = hasVisualsToAnimate
+            }
+        }
+    }
     
     private func resetToInit() {
         self.sessionID = nil
@@ -263,9 +397,19 @@ class Crazy8sManager: ObservableObject, GameEngine {
         self.opponentCardAnimatingFromDeck = nil
         self.hasPerformedInitialLoad = false
         self.turnNumber = 0
+        self.seats = []
+        self.mySeatIndex = 0
+        self.allHands = []
+        self.isSpectating = false
+        self.isAnimatingOpponentTurn = false
+        self.animatingOpponentSeat = 0
+        self.isSinglePlayer = false //we can check chat member count, this is probably redundant
+        self.isJoiningPhase = false
+        self.isSettlingAfterJoin = false
+        self.pendingJoinState = nil
     }
     
-    private func prepareOpponentsTurnForAnimation(state: Crazy8sGameState) -> Bool {
+    private func prepareOpponentsTurnForAnimation(state: Crazy8sLegacyGameState) -> Bool {
         guard turnNumber > 0 else {
             self.opponentHand = state.senderHand //first turn! simple init, no turn to show
             return false
@@ -292,37 +436,166 @@ class Crazy8sManager: ObservableObject, GameEngine {
         opponentHand = opponentsHandPreAnimation
         return true
     }
-    
-    func createNewGameState() -> Data? {
-        let newSessionID = UUID()
-        var newDeck = Deck().cards
-        var newPlayerHand: [Card] = []
-        var newOpponentHand: [Card] = []
-        for _ in 0..<8 {
-            newPlayerHand.append(newDeck.popLast()!) //see if removefirst, remove last is faster
-            newOpponentHand.append(newDeck.popLast()!)
+
+    private func prepareOpponentsTurnForAnimationV2(state: Crazy8sV2GameState, previousSeat: Int) -> Bool {
+        guard state.cardsDrawnByLastPlayer > 0 || state.lastPlayerDidDiscard else {
+            self.opponentHand = state.hands[previousSeat]
+            return false
         }
+
+        var opponentsHandPreAnimation = state.hands[previousSeat]
+        self.cardsOpponentDrew = state.cardsDrawnByLastPlayer
+
+        if opponentDidDiscard {
+            let cardTheyDiscarded = discardPile.popLast()!
+            self.opponentCardPendingDiscard = cardTheyDiscarded
+            opponentsHandPreAnimation.append(cardTheyDiscarded)
+        } else {
+            self.opponentCardPendingDiscard = nil
+        }
+
+        for _ in 0..<cardsOpponentDrew {
+            if !opponentsHandPreAnimation.isEmpty {
+                let cardToReturn = opponentsHandPreAnimation.removeLast()
+                deck.append(cardToReturn)
+            }
+        }
+
+        opponentHand = opponentsHandPreAnimation
+        return true
+    }
+
+    func createNewGameState(seats: [UUID]) -> Data? {
+        let newSessionID = UUID()
+        let playerCount = seats.count
+
+        // Scale decks dynamically: 1 deck for 1-5 players, 2 for 6-10, 3 for 11-15, etc.
+        let decksNeeded = max(1, (playerCount - 1) / 5 + 1)
+        var newDeck = (0..<decksNeeded)
+            .flatMap { _ in Deck().cards }
+            .shuffled()
+
+        var newHands: [[Card]] = Array(repeating: [], count: playerCount)
+        let handSize = playerCount == 2 ? 7 : 5
+        for _ in 0..<handSize {
+            for i in 0..<playerCount {
+                newHands[i].append(newDeck.popLast()!)
+            }
+        }
+
         var newDiscardPile: [Card] = []
         newDiscardPile.append(newDeck.popLast()!)
+
+        // Only seat 0 belongs to the creator; remaining seats are unclaimed until players join
+        var seatList = [seats[0]]
+        for _ in 1..<playerCount {
+            seatList.append(Self.unclaimedSeat)
+        }
         
-        let initialState = Crazy8sGameState(
-            sessionID: newSessionID,
-            deck: newDeck,
-            discardPile: newDiscardPile,
-            senderHand: newPlayerHand,
-            receiverHand: newOpponentHand,
-            cardsOpponentDrew: 0,
-            didDiscard: false,
-            activeSuitOverride: nil,
-            turnNumber: 0)
-        
-        return try? JSONEncoder().encode(initialState)
+        if seats.count == 2 { //1v1 game mode , create legacy game state for now
+            let legacyState = Crazy8sLegacyGameState(
+                sessionID: newSessionID,
+                deck: newDeck,
+                discardPile: newDiscardPile,
+                senderHand: newHands[0],
+                receiverHand: newHands[1],
+                cardsOpponentDrew: 0,
+                didDiscard: false,
+                activeSuitOverride: nil,
+                turnNumber: 0,
+            )
+            self.isSinglePlayer = true
+            return try? JSONEncoder().encode(legacyState)
+            
+        } else { //we have a groupchat
+            let initialState = Crazy8sV2GameState(
+                sessionID: newSessionID,
+                deck: newDeck,
+                discardPile: newDiscardPile,
+                seats: seatList,
+                hands: newHands,
+                currentSeatIndex: 1 % playerCount,
+                turnNumber: 0,
+                cardsDrawnByLastPlayer: 0,
+                lastPlayerDidDiscard: false,
+                activeSuitOverride: nil
+            )
+            self.isSinglePlayer = false
+            return try? JSONEncoder().encode(initialState)
+        }
     }
     
-    func sendGameState() {
-        if deck.count == 1 { reshuffleDiscardIntoDeck() }
+    func joinGame(state: Crazy8sV2GameState, localParticipantID: UUID) -> Data? {
+        guard !state.seats.contains(localParticipantID),
+              let openIndex = state.seats.firstIndex(of: Self.unclaimedSeat) else { return nil }
+
+        var updatedSeats = state.seats
+        updatedSeats[openIndex] = localParticipantID
         
-        let currentGameState = Crazy8sGameState(
+        //if the lobby is now full, the current user was the last to join and should be the first to move
+        let isLobbyNowFull = !updatedSeats.contains(Self.unclaimedSeat)
+        let nextSeatIndex = isLobbyNowFull ? openIndex : state.currentSeatIndex
+
+        let updatedState = Crazy8sV2GameState(
+            sessionID: state.sessionID,
+            deck: state.deck,
+            discardPile: state.discardPile,
+            seats: updatedSeats,
+            hands: state.hands,
+            currentSeatIndex: nextSeatIndex,
+            turnNumber: state.turnNumber + 1,
+            cardsDrawnByLastPlayer: 0,
+            lastPlayerDidDiscard: false,
+            activeSuitOverride: state.activeSuitOverride)
+
+        return try? JSONEncoder().encode(updatedState)
+    }
+
+    func performJoin(shouldBroadcast: Bool = true) {
+        guard let state = pendingJoinState,
+              let lpID = localParticipantID,
+              let joinData = joinGame(state: state, localParticipantID: lpID) else { return }
+
+        pendingJoinState = nil
+        UserDefaults.standard.set(joinData, forKey: "crazy8s_joined_\(state.sessionID.uuidString)")
+        if shouldBroadcast {
+            onJoinCompleted?(joinData, .crazy8s)
+        }
+        loadState(from: joinData, isPlayersTurn: false, localParticipantID: lpID, isSinglePlayer: false, conversationID: "")
+
+        // Keep the joining screen visible while concurrent joins settle.
+        // Skip if the lobby just filled — no concurrency risk when you're the last one in.
+        if isJoiningPhase {
+            isSettlingAfterJoin = true
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
+                self.isSettlingAfterJoin = false
+            }
+        }
+    }
+
+    // Re-join after a concurrent join overwrote ours (last-writer-wins on MSSession).
+    // Resets internal state so performJoin() works against the surviving message's state.
+    func rejoinWithCurrentState(_ currentState: Crazy8sV2GameState, localParticipantID: UUID) {
+        self.pendingJoinState = currentState
+        self.localParticipantID = localParticipantID
+        self.isJoiningPhase = true
+        self.turnNumber = currentState.turnNumber
+        performJoin()
+    }
+
+    func sendGameStateSwitch() {
+        if deck.count == 1 { reshuffleDiscardIntoDeck() }
+
+        if isSinglePlayer {
+            sendLegacyGameState()
+        } else {
+            sendV2GameState()
+        }
+    }
+
+    private func sendLegacyGameState() {
+        let currentGameState = Crazy8sLegacyGameState(
             sessionID: self.sessionID!,
             deck: self.deck,
             discardPile: self.discardPile,
@@ -333,13 +606,45 @@ class Crazy8sManager: ObservableObject, GameEngine {
             activeSuitOverride: activeSuitOverride,
             turnNumber: self.turnNumber + 1
         )
-        
+
         guard let stateData = try? JSONEncoder().encode(currentGameState) else {
             print("Error: Failed to encode Crazy8sGameState into Data.")
             return
         }
-        
-        self.onTurnCompleted?(stateData, .crazy8s) //send data to MessagesViewController
+
+        self.turnNumber += 1
+        self.onTurnCompleted?(stateData, .crazy8s)
+    }
+
+    private func sendV2GameState() {
+        allHands[mySeatIndex] = playerHand
+        let previousSeat = (mySeatIndex - 1 + seats.count) % seats.count //why do we care about previousSeat here?
+        if turnNumber > 0 {
+            allHands[previousSeat] = opponentHand //why do we set previous seat on our turn?
+        }
+
+        let nextSeat = (mySeatIndex + 1) % seats.count
+
+        let currentGameState = Crazy8sV2GameState(
+            sessionID: self.sessionID!,
+            deck: self.deck,
+            discardPile: self.discardPile,
+            seats: self.seats,
+            hands: self.allHands,
+            currentSeatIndex: nextSeat,
+            turnNumber: self.turnNumber + 1,
+            cardsDrawnByLastPlayer: self.cardsDrawnThisTurn,
+            lastPlayerDidDiscard: self.userDidDiscard,
+            activeSuitOverride: self.activeSuitOverride
+        )
+
+        guard let stateData = try? JSONEncoder().encode(currentGameState) else {
+            print("Error: Failed to encode Crazy8sGameStateV2 into Data.")
+            return
+        }
+
+        self.turnNumber += 1
+        self.onTurnCompleted?(stateData, .crazy8s)
     }
     
 }

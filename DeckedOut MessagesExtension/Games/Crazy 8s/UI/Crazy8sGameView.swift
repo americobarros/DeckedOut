@@ -27,7 +27,7 @@ struct Crazy8sGameView: View {
             VStack {
                 opponentsHand
                 Spacer()
-                    .frame(maxWidth: UIScreen.main.bounds.width)
+                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? game.extensionWidth : UIScreen.main.bounds.width)
                 deckAndDiscard
                 rulesButtonSection
                 playersHand
@@ -48,7 +48,10 @@ struct Crazy8sGameView: View {
         
         .overlay {
             if game.phase == .idlePhase {
-                WaitingOverlayView()
+                WaitingOverlayView(
+                    joinedCount: game.isJoiningPhase ? game.seats.filter { $0 != Crazy8sManager.unclaimedSeat }.count : nil,
+                    totalCount: game.isJoiningPhase ? game.seats.count : nil
+                )
                     .transition(.opacity.animation(.easeInOut(duration: 0.5)))
             }
             else if game.phase == .gameEndPhase {
@@ -58,7 +61,7 @@ struct Crazy8sGameView: View {
         }
         .onChange(of: game.turnNumber) { lastTurn, newTurn in
             Task {
-                if game.phase == .animationPhase {
+                if game.phase == .animationPhase || game.isAnimatingOpponentTurn {
                     await animateOpponentsTurn()
                 }
             }
@@ -81,7 +84,7 @@ struct Crazy8sGameView: View {
     }
     
     private var opponentsHand: some View {
-        Crazy8sOpponentHandView(cards: game.opponentHand, discardPileZone: discardFrame, deckZone: deckFrame)
+        Crazy8sOpponentsArcView(discardPileZone: discardFrame, deckZone: deckFrame)
             .padding(.top, 30)
             .zIndex(2)
     }
@@ -181,7 +184,7 @@ struct Crazy8sGameView: View {
     
     private var rulesButtonSection: some View {
         Spacer()
-            .frame(maxWidth: UIScreen.main.bounds.width)
+            .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? game.extensionWidth : UIScreen.main.bounds.width)
             .overlay(
                 HStack {
                     Button(action: {
@@ -207,7 +210,7 @@ struct Crazy8sGameView: View {
                     
                     Spacer()
                 }
-                .padding(.top, 15)
+                .padding(.top, 10)
                 .padding(.horizontal, 30)
             )
     }
@@ -244,12 +247,13 @@ struct Crazy8sGameView: View {
         
         if let cardToDiscard = game.opponentCardPendingDiscard {
             game.opponentCardAnimatingToDiscard = cardToDiscard
-            
+
             do {
                 try await Task.sleep(nanoseconds: 600_000_000) // 0.6s for discard animation
             } catch { }
+        } else if game.isAnimatingOpponentTurn {
+            game.isAnimatingOpponentTurn = false
         } else if game.phase == .animationPhase {
-            // Opponent drew cards but didn't discard — transition to player's turn
             game.phase = .mainPhase
             game.checkHandPlayability()
         }

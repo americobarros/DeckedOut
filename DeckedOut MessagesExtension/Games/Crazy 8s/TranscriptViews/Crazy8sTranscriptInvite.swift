@@ -8,7 +8,15 @@
 import SwiftUI
 
 struct Crazy8sTranscriptInvite: View {
+    var gameState: Crazy8sV2GameState? = nil
     var onHeightChange: ((CGFloat) -> Void)? = nil
+    
+    private var joinedPlayerCount: Int { gameState?.seats.filter { $0 != Crazy8sManager.unclaimedSeat }.count ?? 0 }
+    private var totalPlayerCount: Int { gameState?.seats.count ?? 0 }
+    private var isWaitingForPlayers: Bool {
+        guard gameState != nil else { return false } // If there is no V2 game state, we aren't waiting for group chat players
+        return joinedPlayerCount < totalPlayerCount
+    }
 
     var body: some View {
         VStack() {
@@ -16,6 +24,14 @@ struct Crazy8sTranscriptInvite: View {
             Crazy8sTranscriptInviteHand()
                 .offset(y: 40)
                 .frame(height: 150)
+                .overlay(alignment: .top) {
+                    if isWaitingForPlayers {
+                        Text("Joined: \(joinedPlayerCount) / \(totalPlayerCount)")
+                            .font(.system(.headline, design: .serif, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.top, )
+                    }
+                }
                 
             CaptionTextView(isWaiting: false, altText: "Let's Play Crazy 8s!") //technically the player IS waiting, but that bool is to display "waiting for opponent..." or not
             

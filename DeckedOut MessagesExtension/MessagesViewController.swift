@@ -20,6 +20,19 @@ class MessagesViewController: MSMessagesAppViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupAudioSession()
+        NotificationCenter.default.addObserver(self, selector: #selector(sceneWillDeactivate), name: UIScene.willDeactivateNotification, object: nil)
+    }
+
+    @objc private func sceneWillDeactivate() { //for detecting scene closues on ipad
+        SoundManager.instance.stopBackgroundMusic()
+    }
+    
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        let currentWidth = self.view.bounds.width
+        if let engine = activeGameEngine, engine.extensionWidth != currentWidth {
+            engine.extensionWidth = currentWidth
+        }
     }
     
     private func setupAudioSession() {
@@ -38,13 +51,13 @@ class MessagesViewController: MSMessagesAppViewController {
         super.willBecomeActive(with: conversation)
         guard let message = conversation.selectedMessage, // Do we have a message? Can we decode it?
             let gameInfo = extractGameInfo(from: message) else { return } // If there's no message to select, the user is likely opening the main menu from the app drawer
-        
+
         let isFromMe = !conversation.remoteParticipantIdentifiers.contains(message.senderParticipantIdentifier)
-        
+
         if presentationStyle == .transcript {
-            presentTranscriptView(for: gameInfo.type, stateData: gameInfo.data, isFromMe: isFromMe)
+            presentTranscriptView(for: gameInfo.type, stateData: gameInfo.data, isFromMe: isFromMe, localParticipantID: conversation.localParticipantIdentifier)
         } else {
-            loadGameStateToMemory(from: message, conversation: conversation)
+            loadGameStateToMemory(from: message, conversation: conversation, canAttemptRejoin: true)
         }
     }
     
@@ -67,12 +80,9 @@ class MessagesViewController: MSMessagesAppViewController {
         guard presentationStyle != .transcript else { return } // Transcript instances must never load game state or wire the send callback
         loadGameStateToMemory(from: message, conversation: conversation)
     }
-   
+
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
         super.didReceive(message, conversation: conversation)
-        // Ignore messages we sent ourselves - prevents double-processing our own outgoing move
-        //let isFromMe = !conversation.remoteParticipantIdentifiers.contains(message.senderParticipantIdentifier)
-        //guard !isFromMe else { return }
         guard presentationStyle != .transcript else { return } // Transcript instances must never load game state or wire the send callback
         loadGameStateToMemory(from: message, conversation: conversation)
     }
@@ -93,7 +103,7 @@ class MessagesViewController: MSMessagesAppViewController {
         if presentationStyle == .expanded {
             if isGameLoaded { // A game IS loaded but game isn't on screen yet -> Show it.
                 if let selectedMessage = conversation.selectedMessage { // Make sure it's the game the user tapped
-                    loadGameStateToMemory(from: selectedMessage, conversation: conversation, isExplicitChange: true)
+                    loadGameStateToMemory(from: selectedMessage, conversation: conversation, isExplicitChange: true, canAttemptRejoin: true)
                 }
                 presentGameView()
             } else {  // Expanded, but no game loaded -> Show Menu
@@ -105,15 +115,16 @@ class MessagesViewController: MSMessagesAppViewController {
     }
     
     // MARK: - Helper functions
-    private func presentTranscriptView(for gameType: GameType, stateData: Data, isFromMe: Bool) {
-        let rootView = decideTranscriptView(for: gameType, stateData: stateData, isFromMe: isFromMe)
+    private func presentTranscriptView(for gameType: GameType, stateData: Data, isFromMe: Bool, localParticipantID: UUID) {
+        let rootView = decideTranscriptView(for: gameType, stateData: stateData, isFromMe: isFromMe, localParticipantID: localParticipantID)
         let transcriptViewController = UIHostingController(rootView: rootView)
         presentView(transcriptViewController)
     }
-    
+
     @ViewBuilder
-    private func decideTranscriptView(for gameType: GameType?, stateData: Data, isFromMe: Bool) -> some View {
+    private func decideTranscriptView(for gameType: GameType?, stateData: Data, isFromMe: Bool, localParticipantID: UUID) -> some View {
         switch gameType {
+            
         case .ginRummy, .none: //.none is for users recieving a game from pre-2.0 users
             if let decodedState = try? JSONDecoder().decode(GinRummyGameState.self, from: stateData) {
                 if decodedState.turnNumber == 0 { // Game invite
@@ -141,10 +152,36 @@ class MessagesViewController: MSMessagesAppViewController {
                 Text("Error loading match data.") // Fallback UI in case the data is corrupted or decoding fails (should never trigger)
                     .padding()
             }
+
             
         case .crazy8s:
-            if let decodedState = try? JSONDecoder().decode(Crazy8sGameState.self, from: stateData) {
-                if decodedState.turnNumber == 0 { // Game invite
+            // Try V2 (groupchat multiplayer) first, then fall back to V1
+            if let v2State = try? JSONDecoder().decode(Crazy8sV2GameState.self, from: stateData) {
+                if v2State.seats.contains(Crazy8sManager.unclaimedSeat) {
+                    Crazy8sTranscriptInvite( // Game invite view
+                        gameState: v2State,
+                        onHeightChange: { [weak self] height in
+                            self?.transcriptHeight = height
+                        }
+                    )
+                    .onTapGesture {
+                        self.requestPresentationStyle(.expanded)
+                    }
+                } else { // The user has joined! Display groupchat transcript view
+                    Crazy8sTranscriptV2(
+                        gameState: v2State,
+                        localParticipantID: localParticipantID,
+                        onHeightChange: { [weak self] height in
+                            self?.transcriptHeight = height
+                        }
+                    )
+                    .onTapGesture {
+                        self.requestPresentationStyle(.expanded)
+                    }
+                }
+            // Legacy pre-3.0 Game State
+            } else if let legacyState = try? JSONDecoder().decode(Crazy8sLegacyGameState.self, from: stateData) {
+                if legacyState.turnNumber == 0 { // Game invite view
                     Crazy8sTranscriptInvite(
                         onHeightChange: { [weak self] height in
                             self?.transcriptHeight = height
@@ -153,9 +190,9 @@ class MessagesViewController: MSMessagesAppViewController {
                     .onTapGesture {
                         self.requestPresentationStyle(.expanded)
                     }
-                } else { // Default waiting view the user will see in all cases except an invite
-                    Crazy8sTranscriptDefault(
-                        gameState: decodedState,
+                } else { // 1v1 mid-game transcript view
+                    Crazy8sTranscriptLegacy(
+                        gameState: legacyState,
                         isFromMe: isFromMe,
                         onHeightChange: { [weak self] height in
                             self?.transcriptHeight = height
@@ -170,6 +207,7 @@ class MessagesViewController: MSMessagesAppViewController {
                     .padding()
             }
    
+            
         case .golf:
             if let decodedState = try? JSONDecoder().decode(GolfGameState.self, from: stateData) {
                 if decodedState.turnNumber == 0 { // Game invite
@@ -226,6 +264,8 @@ class MessagesViewController: MSMessagesAppViewController {
     private func presentGameView() {
         guard let engine = activeGameEngine else { return }
         let gameViewController: UIViewController
+        
+        engine.extensionWidth = self.view.bounds.width
         
         if let ginManager = engine as? GinRummyManager {
             if self.children.first is UIHostingController<GinRootView> { return }
@@ -307,15 +347,17 @@ class MessagesViewController: MSMessagesAppViewController {
         message.summaryText = templateLayout.caption
         
         setupEngineListener()
-        
+
         //init and package initital game state
-        guard let stateData = activeGameEngine?.createNewGameState() else {
+        let seats = [conversation.localParticipantIdentifier] + conversation.remoteParticipantIdentifiers
+        guard let stateData = activeGameEngine?.createNewGameState(seats: seats) else {
             print("Error: Could not generate starting game state for \(gameType)")
             return
         }
         let jsonString = stateData.base64EncodedString()
         var components = URLComponents()
         components.queryItems = [
+            URLQueryItem(name: "isSinglePlayer", value: String(activeGameEngine?.isSinglePlayer ?? true)),
             URLQueryItem(name: "gameType", value: gameType.rawValue),
             URLQueryItem(name: "gameState", value: jsonString)]
         message.url = components.url
@@ -332,7 +374,7 @@ class MessagesViewController: MSMessagesAppViewController {
             }
         }
         
-        self.activeGameEngine = nil //set it back to nil to fix view transition bug. If we don't, willTransition thinks theres an active game when it hasn't been sent yet. activeGameEngine gets reactivated in didRecieve/didSelect anyway
+        self.activeGameEngine = nil //set it back to nil to fix view transition bug. If we don't, willTransition thinks theres an active game when it hasn't been sent yet. activeGameEngine gets reactivated in didReceive/didSelect anyway
     }
     
     func sendGameMove(gameType: GameType, stateData: Data) {
@@ -340,6 +382,7 @@ class MessagesViewController: MSMessagesAppViewController {
         let stateDataJSONString = stateData.base64EncodedString()
         var components = URLComponents()
         components.queryItems = [
+            URLQueryItem(name: "isSinglePlayer", value: String(activeGameEngine?.isSinglePlayer ?? true)),
             URLQueryItem(name: "gameType", value: gameType.rawValue),
             URLQueryItem(name: "gameState", value: stateDataJSONString)]
         
@@ -420,14 +463,35 @@ class MessagesViewController: MSMessagesAppViewController {
         }
     }
     
-    private func extractGameInfo(from message: MSMessage) -> (type: GameType, data: Data)? {
+    private func sendJoinMessage(session: MSSession, conversation: MSConversation, gameType: GameType, isSinglePlayer: Bool, stateData: Data) {
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "isSinglePlayer", value: String(isSinglePlayer)),
+            URLQueryItem(name: "gameType", value: gameType.rawValue),
+            URLQueryItem(name: "gameState", value: stateData.base64EncodedString())]
+
+        let message = MSMessage(session: session)
+        message.url = components.url
+
+        let templateLayout = MSMessageTemplateLayout()
+        templateLayout.image = UIImage(named: "Crazy8sDefault")
+        templateLayout.caption = NSLocalizedString("Joined Crazy 8s!", comment: "Crazy 8s join caption/summary")
+        message.summaryText = templateLayout.caption
+
+        let liveLayout = MSMessageLiveLayout(alternateLayout: templateLayout)
+        message.layout = liveLayout
+
+        conversation.send(message)
+    }
+
+    private func extractGameInfo(from message: MSMessage) -> (type: GameType, data: Data, version: Bool)? {
         guard let url = message.url,
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
-        
+
         // Extract the state data first (both old and new apps will always have this)
         guard let stateString = components.queryItems?.first(where: { $0.name == "gameState" })?.value,
               let stateData = Data(base64Encoded: stateString) else { return nil }
-        
+
         // Look for the game type. If present, set it. If unrecognized (outdated client), default to unknown.
         // If missing, default to Gin Rummy (legacy support for users still on 1.x)
         let gameType: GameType
@@ -436,13 +500,17 @@ class MessagesViewController: MSMessagesAppViewController {
         } else {
             gameType = .ginRummy
         }
-        
-        return (type: gameType, data: stateData)
+
+        // State format version: absent = 1 (legacy), 2 = seat-based multiplayer
+        let versionString = components.queryItems?.first(where: { $0.name == "isSinglePlayer" })?.value
+        let version = Bool(versionString ?? "true") ?? true
+
+        return (type: gameType, data: stateData, version: version)
     }
     
-    private func loadGameStateToMemory(from message: MSMessage, conversation: MSConversation, isExplicitChange: Bool = false) {
+    private func loadGameStateToMemory(from message: MSMessage, conversation: MSConversation, isExplicitChange: Bool = false, canAttemptRejoin: Bool = false) {
         guard let gameInfo = extractGameInfo(from: message) else { return }
-        
+
         switch gameInfo.type {
         case .ginRummy:
             self.activeGameEngine = GinRummyManager.shared
@@ -454,21 +522,72 @@ class MessagesViewController: MSMessagesAppViewController {
             print("Received unsupported or unknown game type")
             return
         }
-        
+
         setupEngineListener()
-        
+
         let senderID = message.senderParticipantIdentifier
         let isFromMe = !conversation.remoteParticipantIdentifiers.contains(senderID)
         activeGameEngine?.loadState(
             from: gameInfo.data,
             isPlayersTurn: !isFromMe,
+            localParticipantID: conversation.localParticipantIdentifier,
+            isSinglePlayer: gameInfo.version,
             conversationID: conversation.localParticipantIdentifier.uuidString,
             isExplicitChange: isExplicitChange)
+
+        // Concurrent-join recovery: if we previously joined this session but another
+        // player's join overwrote ours (same MSSession, last-writer-wins), re-join
+        // against the surviving message's state so both joins are merged.
+        if let crazy8s = activeGameEngine as? Crazy8sManager,
+           gameInfo.version == false,
+           let v2State = try? JSONDecoder().decode(Crazy8sV2GameState.self, from: gameInfo.data) {
+
+            let lpID = conversation.localParticipantIdentifier
+            let joinKey = "crazy8s_joined_\(v2State.sessionID.uuidString)"
+            let hasUnclaimed = v2State.seats.contains(Crazy8sManager.unclaimedSeat)
+            let isMissing = !v2State.seats.contains(lpID)
+            let hasJoinKey = UserDefaults.standard.data(forKey: joinKey) != nil
+            let hasOtherJoiner = v2State.seats.dropFirst().contains(where: { $0 != Crazy8sManager.unclaimedSeat })
+
+            if hasUnclaimed && isMissing && hasJoinKey && hasOtherJoiner {
+                if canAttemptRejoin {
+                    crazy8s.rejoinWithCurrentState(v2State, localParticipantID: lpID)
+                } else {
+                    let rival = v2State.seats.dropFirst().first(where: { $0 != Crazy8sManager.unclaimedSeat })!
+                    let shouldAct = lpID.uuidString < rival.uuidString
+                    if shouldAct {
+                        crazy8s.rejoinWithCurrentState(v2State, localParticipantID: lpID)
+                    }
+                }
+            } else if crazy8s.isJoiningPhase,
+                      let savedJoinData = UserDefaults.standard.data(forKey: joinKey) {
+                crazy8s.loadState(from: savedJoinData, isPlayersTurn: false, localParticipantID: lpID, isSinglePlayer: false, conversationID: conversation.localParticipantIdentifier.uuidString)
+            }
+
+            let seatDescriptions = crazy8s.seats.enumerated().map { index, uuid in
+                if uuid == Crazy8sManager.unclaimedSeat {
+                    return "Seat \(index): [unclaimed]"
+                } else if uuid == lpID {
+                    return "Seat \(index): \(uuid.uuidString) (me)"
+                } else {
+                    return "Seat \(index): \(uuid.uuidString)"
+                }
+            }
+        }
     }
     
     private func setupEngineListener() {
         self.activeGameEngine?.onTurnCompleted = { [weak self] stateData, gameType in
             self?.sendGameMove(gameType: gameType, stateData: stateData)
+        }
+        if let crazy8s = activeGameEngine as? Crazy8sManager {
+            crazy8s.onJoinCompleted = { [weak self] stateData, gameType in
+                guard let self = self,
+                      let conversation = self.activeConversation,
+                      let selectedMessage = conversation.selectedMessage,
+                      let session = selectedMessage.session else { return }
+                self.sendJoinMessage(session: session, conversation: conversation, gameType: gameType, isSinglePlayer: crazy8s.isSinglePlayer, stateData: stateData)
+            }
         }
     }
 }
@@ -487,9 +606,25 @@ protocol GameEngine: AnyObject {
     var isGameOver: Bool { get }    // Used for setting iMessage captions
     var playerHasWon: Bool { get }  // Used for setting iMessage captions
     var discardPile: [Card] { get } // Used for setting iMessage summary text
-    
-    func createNewGameState() -> Data?
-    func loadState(from data: Data, isPlayersTurn: Bool, conversationID: String, isExplicitChange: Bool)
+    var isSinglePlayer: Bool { get }
+    var extensionWidth: CGFloat { get set }
+
+    func createNewGameState(seats: [UUID]) -> Data?
+    func loadState(from data: Data, isPlayersTurn: Bool, localParticipantID: UUID, isSinglePlayer: Bool, conversationID: String, isExplicitChange: Bool)
     func saveMidTurnState(conversationID: String)
     func clearMidTurnState(conversationID: String)
+}
+
+// MARK: - Game State Protocols
+protocol BasicGameState: Codable {
+    var sessionID: UUID { get }
+    var deck: [Card] { get }
+    var discardPile: [Card] { get }
+    var turnNumber: Int { get }
+}
+
+protocol V2GameState: BasicGameState {
+    var seats: [UUID] { get }
+    var hands: [[Card]] { get }
+    var currentSeatIndex: Int { get }
 }

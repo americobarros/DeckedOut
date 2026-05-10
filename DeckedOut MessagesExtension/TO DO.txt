@@ -1,8 +1,29 @@
--golf cards instantly rotate upon hitting discard pile due to the opponents hand being rotated 180 degrees. Unrotate the opponents hand
-
--Add group chat compatibility! Increases adoption rate!!
+**Group Chat Update**
+    *Crazy 8s*
+        -Backend (DONE)
+        -Frontend (DONE)
+        -Transcript (DONE)
+        
+    *Gin Rummy*
+        -Backend
+        -Frontend
+        
+    *Golf*
+        -Backend
+        -Frontend
+            -Golf cards instantly rotate upon hitting discard pile due to the opponents hand being rotated 180 degrees. rotate during new animations (this should already be implemented in crazy 8s and gin discard animations)
 
 ***----------*** UPDATE 3.0.0 ***----------***
+
+-usernames? in groupchat settings?
+
+-White glow on cards? Disable letter flipping. It should just show the users hand if its their turn to move
+
+-look into if we can send a message/join a game by tapping "Join" in a transcript view, but I doubt it. we have had previous problems sending things via transcript views. the user might have to open the game before it automatically sends in the backend, or after they tap "Join" while entering in an optional username
+
+-Unify 1v1 and groupchat code once everyone is updated to using the groupchat model? make groupchat compatible with 1v1 as well?
+(^ might not be possible)
+-look into deprecating isSinglePlayer? (just check seats.count)
 
 -Add Accessibility features
     -Larger Text (mostly complete, add scrollable rules view for truly massive text)
@@ -11,7 +32,7 @@
     
 ***----------*** UPDATE 3.1.0 ***----------***
 
--add 2 new games
+-add Spades or some other game (should supports groupchats by default)
 
 -review localized "start game" button sizes
 
@@ -19,9 +40,17 @@
 
 ***----------*** UPDATE 4.0.0 ***----------***
 
--Ads...
+-add a 5th game
+
+-see if getting rid of legacy (pre 3.0 groupchat update) load states functions is advisable? if everyone is already updated? it doesnt hurt to keep them. could prevent crashes for stragglers
+
+***----------*** UPDATE 5.0.0 ***----------***
+
+-delete hangar png if paint thing is finalized
 
 -Customization menu similar to the main menu, where you drag to select your card, back button to the main menu once you select a card
+
+-Ads...
 
 ***----------*** UPDATE 5.0.0 ***----------***
 
@@ -69,6 +98,7 @@ Customizations to sell:
 
 
 QOL changes / possible updates:
+-look into why arrow replace animation isnt doing the same animation seen in SF Symbols
 -alphabetize game list depending on language, start in center with most popular game?
 -look for regional (not just language!) differences in card game names? (Switch is called “last card” in New Zealand)
 -fix invite transcript card jitter
@@ -77,6 +107,7 @@ QOL changes / possible updates:
 -Deck UI # should change based on how many cards there are left in the deck. when we get down to the final 5 cards, it should reflect that
 -tapping in and out and between games faster in the main menu increasses the fan's upwards animation speed somehow?
 -discard pile should look a little more random rather than a perfectly straight stack of cards?
+-restrict max width for transcript views? do they expand too far on ipad?
 -be able to rearrange your cards, (but not draw) during the opponents turn
 -better win screen? (maybe make it a joker card!) (happy or sad joker with its own colored shadow)
 -make card sizing dynamic and grow card size if accessibility settings are turned on?

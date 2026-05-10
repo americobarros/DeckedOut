@@ -28,7 +28,7 @@ struct GinGameView: View {
             VStack {
                 opponentsHand
                 Spacer()
-                    .frame(maxWidth: UIScreen.main.bounds.width)
+                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? game.extensionWidth : UIScreen.main.bounds.width)
                 deckAndDiscard
                 rulesButtonSection
                 playersHand
@@ -186,7 +186,7 @@ struct GinGameView: View {
     
     private var rulesButtonSection: some View {
         Spacer()
-            .frame(maxWidth: UIScreen.main.bounds.width)
+            .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? game.extensionWidth : UIScreen.main.bounds.width)
             .overlay(
                 HStack {
                     Button(action: {

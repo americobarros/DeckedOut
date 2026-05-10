@@ -1,14 +1,14 @@
 //
-//  Crazy8sTranscriptDefault.swift
+//  Crazy8sTranscriptLegacy.swift
 //  DeckedOut
 //
-//  Created by Sawyer Christensen on 2/23/26.
+//  Created by Sawyer Christensen on 5/6/26.
 //
 
 import SwiftUI
 
-struct Crazy8sTranscriptDefault: View {
-    let gameState: Crazy8sGameState
+struct Crazy8sTranscriptLegacy: View {
+    let gameState: Crazy8sLegacyGameState
     let isFromMe: Bool
     var onHeightChange: ((CGFloat) -> Void)? = nil
 

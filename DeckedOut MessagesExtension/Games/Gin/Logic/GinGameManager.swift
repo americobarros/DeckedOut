@@ -8,7 +8,7 @@
 import Foundation
 
 // The game snapshot for sending the game over iMessage
-struct GinRummyGameState: Codable {
+struct GinRummyGameState: Codable, BasicGameState {
     let sessionID: UUID
     let deck: [Card]
     let discardPile: [Card]
@@ -24,6 +24,7 @@ struct GinRummyGameState: Codable {
 class GinRummyManager: ObservableObject, GameEngine {
     static let shared = GinRummyManager()
     
+    @Published var extensionWidth: CGFloat = 375
     @Published var sessionID: UUID? = nil
     @Published var playerHand: [Card] = []
     @Published var opponentHand: [Card] = []
@@ -41,9 +42,10 @@ class GinRummyManager: ObservableObject, GameEngine {
     
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
     var handSize: Int = 7 //configurable from the menu (7 or 10)
-    
+    var isSinglePlayer: Bool = true
+
     private init() {} // values are already initialized here ^
-    
+
     // The View Controller will listen to this to know when to send the message
     var onTurnCompleted: ((Data, GameType) -> Void)?
     
@@ -156,7 +158,7 @@ class GinRummyManager: ObservableObject, GameEngine {
         UserDefaults.standard.removeObject(forKey: "midTurn_\(sID.uuidString)")
     }
     
-    func loadState(from data: Data, isPlayersTurn: Bool, conversationID: String, isExplicitChange: Bool = false) {
+    func loadState(from data: Data, isPlayersTurn: Bool, localParticipantID: UUID = UUID(), isSinglePlayer: Bool = true, conversationID: String, isExplicitChange: Bool = false) {
         guard let state = try? JSONDecoder().decode(GinRummyGameState.self, from: data) else {
             print("Error: Failed to decode GinRummyGameState from data.")
             return
@@ -276,7 +278,7 @@ class GinRummyManager: ObservableObject, GameEngine {
         isGameOver = playerHasWon || opponentHasWon
     }
     
-    func createNewGameState() -> Data? {
+    func createNewGameState(seats: [UUID]) -> Data? {
         let newSessionID = UUID()
         var newDeck = Deck().cards
         var newPlayerHand: [Card] = []

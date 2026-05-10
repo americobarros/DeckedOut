@@ -130,10 +130,12 @@ struct MainMenuView: View {
                     .foregroundColor(.white)
                     .shadow(color: .white.opacity(0.33), radius: 5)
             }
-            .font(.subheadline)
+            .font(isExpanded ? .headline : .subheadline)
             .fontWeight(.medium)
+            .padding(.top, isExpanded ? 15 : 0)
             .contentTransition(.interpolate)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isExpanded)
+            .scaleEffect(isExpanded ? 1.2 : 1)
             
     
             Divider()
@@ -168,8 +170,8 @@ struct MainMenuView: View {
                     Spacer()
                     //customizationButton //add when we have skins to add!
                 }
-                .padding(.top, isExpanded ? -95 : 10) //moves the button up in expanded mode
-                .padding(.horizontal, isExpanded ? (isIpad ? 300 : 70) : 30) //moves the button right in expanded mode
+                .padding(.top, isExpanded ? -95 : 10)
+                .padding(.horizontal, isExpanded ? (isIpad ? 250 : 70) : 25)
                 .opacity(isTitleBarHidden ? 0 : 1)
             )
     }
@@ -223,16 +225,39 @@ struct MainMenuView: View {
                 showingRules = true
             }
         }) {
-            HStack(spacing: 12) { // Groups the icon and text
-                Image(systemName: "text.book.closed")
+            HStack(spacing: 8) { // Groups the icon and text
+                
+                /*Image(systemName: "text.book.closed")
                     .resizable()
                     .scaledToFit()
                     .frame(width: buttonSize, height: buttonSize)
+                    //.symbolRenderingMode(.palette)
+                    .foregroundStyle(
+                        .white//,             // Primary (Layer 1)
+                        //Color(white: 0.3),  // Secondary (Layer 2)
+                        //.brown.opacity(1.0) // Tertiary (Layer 3)
+                    )
+                    .applyGradientSymbolColor()*/
                 
+                Image("colored.text.book.closed")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: buttonSize, height: buttonSize)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(
+                        .white,             // Primary (Layer 1)
+                        Color(white: 0.3),  // Secondary (Layer 2)
+                        Color(red: 183 / 255.0, green: 138 / 255.0, blue: 102 / 255.0) // Tertiary (Layer 3)
+                    )
+                    .applyGradientSymbolColor()
+                    .shadow(color: .black.opacity(0.15), radius: 5, x: -5, y: 5)
+
                 //if isExpanded {
                     Text("Rules")
-                        .font(isExpanded ? .title : .title3)
+                        .font(isExpanded ? (isIpad ? .title2 : .title) : .headline)
                         .fontWeight(.semibold)
+                        .foregroundStyle(.white)//.opacity(0.95))
+                        //.shadow(color: .white.opacity(0.5), radius: 1, x: 1, y: -1)
                         //.transition(.asymmetric(
                         //    insertion: .move(edge: .leading).combined(with: .scale(scale: 0.5, anchor: .leading)).combined(with: .opacity),
                             // Fades out and scales down instantly when going back to compact
@@ -240,10 +265,9 @@ struct MainMenuView: View {
                         //))
                 //}
             }
-            .foregroundStyle(.white)//.opacity(0.95))
             .fixedSize(horizontal: true, vertical: false)
             //.shadow(color: .white.opacity(0.5), radius: 3)
-            //.offset(x: isExpanded ? 40 : 0, y: isExpanded ? -125 : 0) //right and up in expanded
+            //.offset(x: isExpanded ? 40 : 0, y: isExpanded ? -80 : 0) //right and up in expanded
         }
     }
     
@@ -254,25 +278,30 @@ struct MainMenuView: View {
             //action()
         }) {
             HStack(spacing: 12) {
-                if isExpanded {
+                //if isExpanded {
                     Text("Themes")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing).combined(with: .scale(scale: 0.5, anchor: .trailing)).combined(with: .opacity),
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)//.opacity(0.95))
+                        //.shadow(color: .white.opacity(0.5), radius: 1, x: -1, y: -1)
+                        //.transition(.asymmetric(
+                            //insertion: .move(edge: .trailing).combined(with: .scale(scale: 0.5, anchor: .trailing)).combined(with: .opacity),
                             // Same here, clean fade and shrink on exit
-                            removal: .identity//.combined(with: .scale(scale: 0.5))
-                        ))
-                }
+                           // removal: .identity//.combined(with: .scale(scale: 0.5))
+                        //))
+                //}
                 
-                Image("hanger")
+                Image(systemName: "paintpalette.fill")
                     .resizable()
                     .scaledToFit()
                     .frame(width: buttonSize, height: buttonSize)
+                    .symbolRenderingMode(.multicolor)
+                    .applyGradientSymbolColor()
+                    .shadow(color: .black.opacity(0.15), radius: 5, x: 5, y: 5)
+                
             }
-            .foregroundStyle(.white)
             .fixedSize(horizontal: true, vertical: false)
-            .shadow(color: .white.opacity(0.5), radius: 5)
+            //.shadow(color: .white.opacity(0.5), radius: 5)
             .offset(x: isExpanded ? -40 : 0, y: isExpanded ? 25 : 0) //left and down in expanded
         }
     }

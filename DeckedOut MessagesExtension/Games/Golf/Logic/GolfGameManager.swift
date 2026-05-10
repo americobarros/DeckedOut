@@ -8,7 +8,7 @@
 import Foundation
 
 // The game snapshot for sending the game over iMessage
-struct GolfGameState: Codable {
+struct GolfGameState: Codable, BasicGameState {
     let sessionID: UUID
     let deck: [Card]
     let discardPile: [Card]
@@ -25,6 +25,7 @@ struct GolfGameState: Codable {
 class GolfManager: ObservableObject, GameEngine {
     static let shared = GolfManager()
     
+    @Published var extensionWidth: CGFloat = 375
     @Published var sessionID: UUID? = nil
     @Published var playerHand: [Card] = []
     @Published var opponentHand: [Card] = []
@@ -46,6 +47,7 @@ class GolfManager: ObservableObject, GameEngine {
     
     private var preTurnFaceUpIndices: Set<Int> = [] //captured before replaceCard modifies playerFaceUpIndices
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
+    var isSinglePlayer: Bool = true
 
     var playerCancelledIndices: Set<Int> {
         cancelledIndices(hand: playerHand, faceUp: playerFaceUpIndices)
@@ -66,9 +68,9 @@ class GolfManager: ObservableObject, GameEngine {
         }
         return cancelled
     }
-    
+
     private init() {} // values are already initialized here ^
-    
+
     // The View Controller will listen to this to know when to send the message
     var onTurnCompleted: ((Data, GameType) -> Void)?
     
@@ -194,7 +196,7 @@ class GolfManager: ObservableObject, GameEngine {
         UserDefaults.standard.removeObject(forKey: "midTurn_\(sID.uuidString)")
     }
     
-    func loadState(from data: Data, isPlayersTurn: Bool, conversationID: String, isExplicitChange: Bool = false) {
+    func loadState(from data: Data, isPlayersTurn: Bool, localParticipantID: UUID = UUID(), isSinglePlayer: Bool = true, conversationID: String, isExplicitChange: Bool = false) {
         guard let state = try? JSONDecoder().decode(GolfGameState.self, from: data) else {
             print("Error: Failed to decode GolfGameState from data.")
             return
@@ -382,7 +384,7 @@ class GolfManager: ObservableObject, GameEngine {
         WinTracker.shared.recordWinOnce(for: "Golf", sessionID: sID)
     }
     
-    func createNewGameState() -> Data? {
+    func createNewGameState(seats: [UUID]) -> Data? {
         let newSessionID = UUID()
         var newDeck = Deck().cards
         var newPlayerHand: [Card] = []

@@ -14,11 +14,13 @@ struct Crazy8sOpponentHandView: View {
     let cards: [Card]
     var discardPileZone: CGRect? = nil
     var deckZone: CGRect? = nil
-    
-    init(cards: [Card], discardPileZone: CGRect, deckZone: CGRect) {
+    var sizeScale: CGFloat = 1.0
+
+    init(cards: [Card], discardPileZone: CGRect, deckZone: CGRect, sizeScale: CGFloat = 1.0) {
         self.cards = cards
         self.discardPileZone = discardPileZone
         self.deckZone = deckZone
+        self.sizeScale = sizeScale
     }
     
     // For animating from deck/discard
@@ -30,11 +32,12 @@ struct Crazy8sOpponentHandView: View {
     @State private var normalRotation: Double = 180 //default to face down
     @State private var cardWaitingToAnimate: Card?
     @State private var animatingShadowRadius: CGFloat = 0
+    @State private var animatingScaleCorrection: CGFloat = 1.0
     
     // Card sizing
-    private var cardWidth: CGFloat { cards.count >= 10 ? 98 : 101.5 }
-    private var cardHeight: CGFloat { cards.count >= 10 ? 140 : 145 }
-    private var spacing: CGFloat { cards.count >= 10 ? -72 : -66 } 
+    private var cardWidth: CGFloat { (cards.count >= 10 ? 98 : 101.5) * sizeScale }
+    private var cardHeight: CGFloat { (cards.count >= 10 ? 140 : 145) * sizeScale }
+    private var spacing: CGFloat { (cards.count >= 10 ? -72 : -66) * sizeScale }
     private var centerOffset: Double { Double(cards.count - 1) / 2.0 }
     private let fanningAngle: Double = 4
     
@@ -44,10 +47,11 @@ struct Crazy8sOpponentHandView: View {
                 let isAnimating = (animatingCard == card)
                 let index = cards.firstIndex(of: card)!
                 let angle = Angle.degrees((Double(index) - centerOffset) * -fanningAngle)
-                let yOffset = -abs((Double(index) - centerOffset) * 5)
+                let yOffset = -abs((Double(index) - centerOffset) * 5 * Double(sizeScale))
                 let revealRotation = game.opponentHasWon || game.playerHasWon ? 360 : normalRotation
                 
-                CardView(frontImage: card.imageName, rotation: isAnimating ? animatingRotation : revealRotation)
+                CardView(frontImage: card.imageName, cardHeight: cardHeight, rotation: isAnimating ? animatingRotation : revealRotation)
+                    .scaleEffect(isAnimating ? animatingScaleCorrection : 1.0)
                     .zIndex(Double(index))
                     .opacity(cardWaitingToAnimate == card ? 0 : 1)
                     .rotationEffect(isAnimating ? animationRotationCorrection : angle)
@@ -114,11 +118,12 @@ struct Crazy8sOpponentHandView: View {
                 width: drawZone.midX - cardFrame.midX,
                 height: drawZone.midY - cardFrame.midY + cardHeight/4) //cardHeight/4 is offseting how the deck is built stack is construction and just so happens to match well. will need to change this once the deck starts getting slimmed down
         
-        // initial state
+        // initial state: card appears at full size at the deck
         animationOffset = offsetToDraw
         animatingRotation = 180
         animationRotationCorrection = .degrees(0)
         animatingShadowRadius = 0
+        animatingScaleCorrection = 1.0 / sizeScale
         self.cardWaitingToAnimate = nil
 
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -126,6 +131,7 @@ struct Crazy8sOpponentHandView: View {
             animationRotationCorrection = fanAngle
             animatingRotation = 180
             animatingShadowRadius = 20
+            animatingScaleCorrection = 1.0
         }
 
         // Clear draw animation state
@@ -137,23 +143,25 @@ struct Crazy8sOpponentHandView: View {
     private func animateDiscard(card: Card, cardFrame: CGRect, fanAngle: Angle) {
         // Calculate offset from card's natural position to discard pile
         let cardIndex = cards.firstIndex(of: card)
-        let yArcOffset = abs(Double(cardIndex! - cards.count / 2) * 5)
+        let yArcOffset = abs(Double(cardIndex! - cards.count / 2) * 5 * Double(sizeScale))
         let offsetToDiscard = CGSize(
             width: discardPileZone!.midX - cardFrame.midX,
             height: discardPileZone!.midY - cardFrame.midY + yArcOffset
         )
         
-        // initial state
+        // initial state: card is at hand scale
         animatingRotation = -180 //card is face down
         animationOffset = .zero
         animationRotationCorrection = fanAngle
         animatingShadowRadius = 20
+        animatingScaleCorrection = 1.0
 
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
             animatingRotation = 0 //card gets discarded face up
             animationOffset = offsetToDiscard
             animationRotationCorrection = .degrees(0)
             animatingShadowRadius = 0
+            animatingScaleCorrection = 1.0 / sizeScale
             game.activeSuitOverride = game.hiddenActiveSuitOverride
         }
 

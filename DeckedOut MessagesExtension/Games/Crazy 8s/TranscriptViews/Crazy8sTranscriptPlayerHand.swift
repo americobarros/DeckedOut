@@ -60,11 +60,12 @@ struct Crazy8sTranscriptPlayerHand: View {
     private let cardHeight: CGFloat = 120
     private var dynamicSpacing: CGFloat {
         let baseSpacing: CGFloat = -55
+        let expandAmount: CGFloat = 25.0
         if cards.count > 5 {
-            let compression = CGFloat(cards.count - 5) * 2.0 ///Gradually tighten spacing as the hand grows
-            return cardsAreExpanded ? (baseSpacing + 25 - compression) : (baseSpacing - compression)
+            let compression = CGFloat(cards.count - 5) * 2.0
+            return baseSpacing - compression + (cardsAreExpanded ? expandAmount : 0)
         }
-        return baseSpacing
+        return baseSpacing + (cardsAreExpanded ? expandAmount : 0)
     }
     private let fanningAngle: Double = 5.0
 

@@ -76,6 +76,7 @@ struct MenuCardWheel: View {
                     .zIndex(Double(visibleCount) - abs(distance))
                     .rotationEffect(.degrees(distance * fanningAngle))
                     .offset(y: yOffset)
+                    .shadow(color: .black.opacity(0.10), radius: 10, y: 20)
                     .onTapGesture {
                         if virtualIndex == currentCenterIndex {
                             withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
