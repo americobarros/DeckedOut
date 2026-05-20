@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BE8110082FBE72880023EB2C /* CGFI StoreKit Testing.storekit in Resources */ = {isa = PBXBuildFile; fileRef = BE8110072FBE72870023EB2C /* CGFI StoreKit Testing.storekit */; };
+		BE8110092FBE72880023EB2C /* CGFI StoreKit Testing.storekit in Resources */ = {isa = PBXBuildFile; fileRef = BE8110072FBE72870023EB2C /* CGFI StoreKit Testing.storekit */; };
 		BECF99AA2E04746F007B89C0 /* DeckedOut MessagesExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BECF99A92E04746F007B89C0 /* DeckedOut MessagesExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BECF99AF2E04746F007B89C0 /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BECF99AE2E04746F007B89C0 /* Messages.framework */; };
 /* End PBXBuildFile section */
@@ -36,6 +38,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BE8110072FBE72870023EB2C /* CGFI StoreKit Testing.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CGFI StoreKit Testing.storekit"; sourceTree = "<group>"; };
 		BECF99A02E04746E007B89C0 /* DeckedOut.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeckedOut.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BECF99A92E04746F007B89C0 /* DeckedOut MessagesExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DeckedOut MessagesExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BECF99AE2E04746F007B89C0 /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = System/Library/Frameworks/Messages.framework; sourceTree = SDKROOT; };
@@ -82,6 +85,7 @@
 		BECF99992E04746E007B89C0 = {
 			isa = PBXGroup;
 			children = (
+				BE8110072FBE72870023EB2C /* CGFI StoreKit Testing.storekit */,
 				BECF99A22E04746E007B89C0 /* DeckedOut */,
 				BECF99B02E04746F007B89C0 /* DeckedOut MessagesExtension */,
 				BECF99AD2E04746F007B89C0 /* Frameworks */,
@@ -213,6 +217,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BE8110082FBE72880023EB2C /* CGFI StoreKit Testing.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,6 +225,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BE8110092FBE72880023EB2C /* CGFI StoreKit Testing.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

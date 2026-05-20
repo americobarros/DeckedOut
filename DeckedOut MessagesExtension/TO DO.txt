@@ -1,10 +1,16 @@
--make theme titles match their fonts?
-
--need to add actual price data instead of just strings for cards by implementing (storekit?)
-
--more designs? unlockable achievement card backs?
+-need restore purchases button (i sf symbol next to purchaseable names?) or the price?
 
 ***----------*** UPDATE 3.1.0 ***----------***
+
+-make theme titles match their fonts?
+
+-add more in app purchases localizations in the app store
+
+-more localized storefronts
+
+
+***----------*** UPDATE 3.1.1 ***----------***
+
 
 -opponent hands need to be lower z index than deck, but drawn cards still need to spawn on top
 

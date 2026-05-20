@@ -33,6 +33,7 @@ struct MainMenuView: View {
     @State private var selectedThemeIndex: Int = MainMenuView.initialSelectedThemeIndex()
     @State private var themeWheelKey: Int = 0
     @StateObject private var cardBackSelection = CardBackSelection.shared
+    @StateObject private var store = StoreManager.shared
     @State private var availableGames: [MenuGame] = [
         MenuGame(type: .ginRummy, title: "Gin Rummy", logoCard: "ginRummyCard"),
         MenuGame(type: .crazy8s, title: "Crazy 8s", logoCard: "crazy8sCard"),
@@ -93,6 +94,9 @@ struct MainMenuView: View {
         .background(backgroundLayer)
         .onAppear {
             preloadWins()
+        }
+        .task {
+            await store.start()
         }
     }
     
@@ -171,7 +175,7 @@ struct MainMenuView: View {
                 .modifier(FlipOpacity(rotation: showingThemes ? 180 : 0))
 
                 // Price face
-                Text(LocalizedStringKey(themes[activeThemeIndex].price ?? "Owned"))
+                priceText
                     .foregroundColor(.white)
                     .shadow(color: .white.opacity(0.33), radius: 5)
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
@@ -386,12 +390,17 @@ struct MainMenuView: View {
                 }
                 
             } else if !isThemeSelected { // Selecting a NEW theme
-                let generator = UINotificationFeedbackGenerator()
-                generator.notificationOccurred(.success)
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    selectedThemeIndex = activeThemeIndex
+                let theme = themes[activeThemeIndex]
+                if store.isOwned(theme.productID) {
+                    commitThemeSelection()
+                } else if let productID = theme.productID {
+                    Task {
+                        let success = await store.purchase(productID)
+                        if success, themes[activeThemeIndex].productID == productID {
+                            commitThemeSelection()
+                        }
+                    }
                 }
-                cardBackSelection.selectedName = themes[activeThemeIndex].logoCard
             } else {
                 // Trying to select the ALREADY SELECTED theme (Error haptic)
                 let generator = UINotificationFeedbackGenerator()
@@ -449,6 +458,31 @@ struct MainMenuView: View {
         for index in availableGames.indices {
             let title = availableGames[index].title
             availableGames[index].wins = WinTracker.shared.getWinCount(for: title)
+        }
+    }
+
+    private func commitThemeSelection() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            selectedThemeIndex = activeThemeIndex
+        }
+        cardBackSelection.selectedName = themes[activeThemeIndex].logoCard
+    }
+
+    @ViewBuilder
+    private var priceText: some View {
+        let theme = themes[activeThemeIndex]
+        if let productID = theme.productID {
+            if store.isOwned(productID) {
+                Text("Owned")
+            } else if let price = store.displayPrice(for: productID) {
+                Text(price)
+            } else {
+                Text(verbatim: "—") // products still loading or fetch failed
+            }
+        } else {
+            Text("Owned")
         }
     }
     

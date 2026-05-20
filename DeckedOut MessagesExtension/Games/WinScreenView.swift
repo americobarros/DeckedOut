@@ -80,7 +80,7 @@ struct WinScreenView: View {
                 withAnimation(.spring(response: 1, dampingFraction: 0.7)) {
                     animateIn = true
                 }
-                if playerHasWon && WinTracker.shared.totalWins >= 3 {
+                if playerHasWon && WinTracker.shared.totalWins >= 2 {
                     Task {
                         try? await Task.sleep(for: .seconds(2))
                         await MainActor.run { requestReview() }
