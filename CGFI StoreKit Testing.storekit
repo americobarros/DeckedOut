@@ -16,7 +16,7 @@
   "products" : [
     {
       "displayPrice" : "1.99",
-      "familyShareable" : false,
+      "familyShareable" : true,
       "internalID" : "6771547812",
       "localizations" : [
         {
@@ -46,7 +46,7 @@
     },
     {
       "displayPrice" : "0.99",
-      "familyShareable" : false,
+      "familyShareable" : true,
       "internalID" : "6771546026",
       "localizations" : [
         {
@@ -71,7 +71,7 @@
     },
     {
       "displayPrice" : "0.99",
-      "familyShareable" : false,
+      "familyShareable" : true,
       "internalID" : "6771538352",
       "localizations" : [
         {
@@ -96,7 +96,7 @@
     },
     {
       "displayPrice" : "1.99",
-      "familyShareable" : false,
+      "familyShareable" : true,
       "internalID" : "6771550041",
       "localizations" : [
         {
@@ -110,6 +110,11 @@
           "locale" : "zh_Hans"
         },
         {
+          "description" : "정교한 거미줄 패턴의 카드 뒷면",
+          "displayName" : "거미줄 테마",
+          "locale" : "ko"
+        },
+        {
           "description" : "精緻的蜘蛛網圖案卡背",
           "displayName" : "蜘蛛網主題",
           "locale" : "zh_Hant"
@@ -118,11 +123,6 @@
           "description" : "A spooky spider web card back.",
           "displayName" : "Web Theme",
           "locale" : "en_US"
-        },
-        {
-          "description" : "정교한 거미줄 패턴의 카드 뒷면",
-          "displayName" : "거미줄 테마",
-          "locale" : "ko"
         }
       ],
       "productID" : "Sawyer.DeckedOut.Theme.Web",
@@ -138,7 +138,7 @@
     "_developerTeamID" : "4X76DT8A23",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 801010315.07463896,
+    "_lastSynchronizedDate" : 801185286.99583495,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",

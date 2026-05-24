@@ -1,54 +1,37 @@
--make theme titles match their fonts?
-
--add more in app purchase localizations in the app store
-
--more localized storefronts
-
-***----------*** UPDATE 3.1.1 ***----------***
-
-
--opponent hands need to be lower z index than deck, but drawn cards still need to spawn on top
-
--does gin opponent hand need cardheight passed to the card view?
-
--look into removing handRotation from golf backend? probably not needed. golf hands are never rotated. likely does nothing
--moms increased text side makes the selected: spades appear lower. the padding above the card needs to be dynamic
--moms colors are also weird, (see shadow glows)
+-opponent hands need to be lower z index than deck, but drawn cards still need to spawn on top (opponent hand sometimes clips above deck in groupchat modes)
 
 -draw to discard shadow in golf is sudden
 
--usernames? in groupchat settings?
-
--White glow on cards? Disable letter flipping. It should just show the users hand if its their turn to move
-
--look into if we can send a message/join a game by tapping "Join" in a transcript view, but I doubt it. we have had previous problems sending things via transcript views. the user might have to open the game before it automatically sends in the backend, or after they tap "Join" while entering in an optional username
-
--Unify 1v1 and groupchat code once everyone is updated to using the groupchat model? make groupchat compatible with 1v1 as well?
-(^ might not be possible)
--look into deprecating isSinglePlayer? (just check seats.count)
-
 -Add Accessibility features
+    -increased text side makes the selected: spades appear lower. the padding above the card needs to be dynamic
+    -moms colors are also weird, (see shadow glows)
     -Larger Text (mostly complete, add scrollable rules view for truly massive text)
     -Reduced Motion (all animations turned off/instant)
     -Differentiate without color alone (pretty sure this is already done)
     
+-review localized "start game" button sizes
+    
 ***----------*** UPDATE 3.2.0 ***----------***
 
--add Spades or some other game (should supports groupchats by default)
-
--review localized "start game" button sizes
-
--better win screen for each game?
+-add Dou Dizhu (Chinese, 3 player by default)
 
 ***----------*** UPDATE 4.0.0 ***----------***
 
--add a 5th game
+-add mau mau variant of crazy 8s and the one for turkish?
+
+-add a 5th game (Spades? Hearts?)
 
 -see if getting rid of legacy (pre 3.0 groupchat update) load states functions is advisable? if everyone is already updated? it doesnt hurt to keep them. could prevent crashes for stragglers
 
 ***----------*** UPDATE 5.0.0 ***----------***
 
 Ads $$$
+
+-add more in app purchases
+
+-add more in app purchase localizations in the app store
+-more localized storefronts (after max conversion rate design is confirmed)
+-better win screen for each game?
 
 GAMES TO ADD:
     -Crazy 8s (WIP)
@@ -95,13 +78,18 @@ Customizations to sell:
 
 
 QOL changes / possible updates:
--probably dont need to pass isFromMe to the transcript views? maybe for legacy transcripts
--animate draw in gin and crazy 8s have different completions, figure out why that is
 -look into why arrow replace animation isnt doing the same animation seen in SF Symbols
+-look into deprecating isSinglePlayer? (just check seats.count)
+-usernames? in groupchat settings?
+-look into if we can send a message/join a game by tapping "Join" in a transcript view, but I doubt it. we have had previous problems sending things via transcript views. the user might have to open the game before it automatically sends in the backend, or after they tap "Join" while entering in an optional username (probably not)
+-White glow on cards? Disable letter flipping. It should just show the users hand if its their turn to move
+-make theme titles match their fonts?
+-probably dont need to pass isFromMe to the transcript views? maybe just for legacy transcripts
+-animate draw in gin and crazy 8s have different completions, figure out why that is?
 -alphabetize game list depending on language, start in center with most popular game?
 -look for regional (not just language!) differences in card game names? (Switch is called “last card” in New Zealand)
 -fix invite transcript card jitter
--yellow shadows should animate in upon game win in gin and crazy 8s
+-yellow shadows should animate in upon game win in gin and crazy 8s (dont they?)
 -“tap card to play” reminder text in the middle of the screen if user looked at main menu for too long, (repeating opacity animation?)
 -Deck UI # should change based on how many cards there are left in the deck. when we get down to the final 5 cards, it should reflect that
 -tapping in and out and between games faster in the main menu increasses the fan's upwards animation speed somehow?
@@ -116,6 +104,9 @@ QOL changes / possible updates:
 -be able to drag from the discard pile in Gin as well as tap?
 -add auto-sorting capability?
 
+Code optimizations/refactoring:
+-does gin opponent hand need cardheight passed to the card view?
+-look into removing handRotation from golf backend? probably not needed. golf hands are never rotated. likely does nothing
 -delete inits in the player hand extensions and test if fine? (simple refactoring)
 -shadow modifiers for golf player hand are in game view, for opponent in opponenenthandview. refactor/consolidate for consistency?
 -Add a notice that Aces are not high cards in gin rummy?

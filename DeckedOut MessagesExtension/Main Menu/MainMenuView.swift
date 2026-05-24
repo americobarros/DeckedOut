@@ -357,8 +357,8 @@ struct MainMenuView: View {
                     .frame(width: iconRenderSize, height: iconRenderSize)
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(
-                        .white,             // Primary (Layer 1)
-                        Color(white: 0.3),  // Secondary (Layer 2)
+                        .white,            // Primary (Layer 1)
+                        Color(white: 0.3), // Secondary (Layer 2)
                         Color("bookBrown") // Tertiary (Layer 3)
                     )
                     .contentTransition(.symbolEffect(.replace))
@@ -410,13 +410,12 @@ struct MainMenuView: View {
                 
             } else if !isThemeSelected { // Selecting a NEW theme
                 let theme = themes[activeThemeIndex]
-                if let required = theme.requiredWins, WinTracker.shared.totalWins < required {
-                    // Win-locked theme — block selection with an error haptic
+                if let required = theme.requiredWins, WinTracker.shared.totalWins < required { //the user is attempting to select a win-locked theme
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.error)
-                } else if store.isOwned(theme.productID) {
+                } else if store.isOwned(theme.productID) { //if its owned, select it
                     commitThemeSelection()
-                } else if let productID = theme.productID {
+                } else if let productID = theme.productID { //user is purchasing a new theme!
                     Task {
                         let success = await store.purchase(productID)
                         if success, themes[activeThemeIndex].productID == productID {
@@ -505,6 +504,11 @@ struct MainMenuView: View {
             selectedThemeIndex = activeThemeIndex
         }
         cardBackSelection.selectedName = themes[activeThemeIndex].logoCard
+        
+        withAnimation(.spring(response: 0.67, dampingFraction: 0.7)) { //send the user back to the main menu
+            showingThemes = false
+        }
+        
     }
 
     @ViewBuilder
