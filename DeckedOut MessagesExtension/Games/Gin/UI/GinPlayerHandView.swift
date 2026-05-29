@@ -9,7 +9,9 @@ import SwiftUI
 
 struct GinPlayerHandView: View {
     @EnvironmentObject var game: GinRummyManager
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
+
     //Passed Arguments
     @Binding var cards: [Card]
     var discardPileZone: CGRect? = nil
@@ -89,7 +91,7 @@ struct GinPlayerHandView: View {
                         .accessibilityLabel(Text(accessibilityLabel(for: card)))
                         .accessibilityInputLabels(accessibilityInputLabels(for: card))
                         .accessibilityAddTraits(.isButton)
-                        .accessibilityAction { voiceDiscard(card: card, from: geoFrame, fanAngle: angle) }
+                        .accessibilityAction { voiceDiscard(card: card, from: geoFrame, arcOffset: CGSize(width: xOffset, height: yOffset), fanAngle: angle) }
                     
                         .gesture(
                             DragGesture(coordinateSpace: .global)
@@ -128,8 +130,8 @@ struct GinPlayerHandView: View {
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .zIndex(isDragging ? 100 : Double(visualIndex))
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: predictedDropIndex)
-                .animation(.spring(response: 0.4, dampingFraction: 0.75), value: cards.count)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7).speed(motionSpeed), value: predictedDropIndex)
+                .animation(.spring(response: 0.4, dampingFraction: 0.75).speed(motionSpeed), value: cards.count)
             }
         }
         .frame(height: cardHeight)
@@ -152,16 +154,16 @@ struct GinPlayerHandView: View {
         animationOffset = offsetToDraw
         animationRotationCorrection = .degrees(0)
         
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animationOffset = .zero
             animationRotationCorrection = fanAngle
             if lastDrawSource == .deck {
                 flipRotation = 0
             }
         }
-            
+
         // Clear animation state after animation completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 / motionSpeed) {
             animatingCard = nil
             flipRotation = 0
         }
@@ -188,7 +190,7 @@ struct GinPlayerHandView: View {
             if let sourceIndex = cards.firstIndex(of: card),
                let targetIndex = predictedDropIndex {
                 if sourceIndex != targetIndex {
-                    withAnimation(.spring()) {
+                    withAnimation(.spring().speed(motionSpeed)) {
                         cards.move(fromOffsets: IndexSet(integer: sourceIndex),
                             toOffset: targetIndex > sourceIndex ? targetIndex + 1 : targetIndex)
                     }
@@ -236,22 +238,23 @@ struct GinPlayerHandView: View {
         ]
     }
 
-    private func voiceDiscard(card: Card, from cardFrame: CGRect, fanAngle: Angle) {
+    private func voiceDiscard(card: Card, from cardFrame: CGRect, arcOffset: CGSize, fanAngle: Angle) {
         guard game.phase == .discardPhase, let discardZone = discardPileZone else {
             SoundManager.instance.playErrorFeedback()
             return
         }
         voiceDiscardingCard = card
         voiceDiscardRotation = fanAngle
+        // Subtract arcOffset so the card lands at the discard pile center regardless of its fan position
         let offset = CGSize(
-            width: discardZone.midX - cardFrame.midX,
-            height: discardZone.midY - cardFrame.midY
+            width: discardZone.midX - cardFrame.midX - arcOffset.width,
+            height: discardZone.midY - cardFrame.midY - arcOffset.height
         )
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75).speed(motionSpeed)) {
             voiceDiscardOffset = offset
             voiceDiscardRotation = .zero
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45 / motionSpeed) {
             game.discardCard(card: card)
             voiceDiscardingCard = nil
             voiceDiscardOffset = .zero

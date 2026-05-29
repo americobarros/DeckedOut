@@ -56,6 +56,8 @@ struct JoinGameView: View {
 struct JoinGameButton: View {
     let game: any GroupChatCapable
     @Binding var isJoining: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @State private var isPulsating = false
 
     var body: some View {
@@ -68,7 +70,7 @@ struct JoinGameButton: View {
                 .foregroundStyle(.white)
                 .scaleEffect(isPulsating ? 1.05 : 1)
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true).speed(motionSpeed)) {
                         isPulsating = true
                     }
                 }

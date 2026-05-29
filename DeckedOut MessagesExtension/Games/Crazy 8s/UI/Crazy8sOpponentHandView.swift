@@ -9,7 +9,9 @@ import SwiftUI
 
 struct Crazy8sOpponentHandView: View {
     @EnvironmentObject var game: Crazy8sManager
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
+
     //Passed Arguments
     let cards: [Card]
     var discardPileZone: CGRect? = nil
@@ -67,10 +69,10 @@ struct Crazy8sOpponentHandView: View {
                     .rotationEffect(isAnimating ? animationRotationCorrection : restingRotation)
                     .offset(isAnimating ? animationOffset : .zero)
                     .shadow(color: .black.opacity(0.25), radius: isAnimating ? animatingShadowRadius : 20)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1),
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1).speed(motionSpeed),
                         value: game.opponentHasWon || game.playerHasWon // trigger when this value changes
                     )
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: cards.count)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed), value: cards.count)
                     .background( // capture the global frame of this specific slot
                         GeometryReader { geo in
                             Color.clear
@@ -133,7 +135,7 @@ struct Crazy8sOpponentHandView: View {
         animatingScaleCorrection = 1.0 / sizeScale
         self.cardWaitingToAnimate = nil
 
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animationOffset = .zero
             animationRotationCorrection = fanAngle + .degrees(handRotation)
             animatingRotation = 180
@@ -142,7 +144,7 @@ struct Crazy8sOpponentHandView: View {
         }
 
         // Clear draw animation state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 / motionSpeed) {
             self.animatingCard = nil
         }
     }
@@ -161,7 +163,7 @@ struct Crazy8sOpponentHandView: View {
         animatingShadowRadius = 20
         animatingScaleCorrection = 1.0
 
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animatingRotation = 0 //card gets discarded face up
             animationOffset = offsetToDiscard
             animationRotationCorrection = .zero
@@ -171,7 +173,7 @@ struct Crazy8sOpponentHandView: View {
         }
 
         // Resolve animation state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 / motionSpeed) {
             animatingCard = nil
             animationOffset = .zero
             game.opponentDiscardCard(card: card)

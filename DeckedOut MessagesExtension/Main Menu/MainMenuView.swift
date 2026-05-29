@@ -12,9 +12,11 @@ struct MainMenuView: View {
     @Environment(\.colorScheme) var colorScheme //for light/dark theme detection
     //@Environment(\.locale) var locale //for language detection
     @Environment(\.accessibilityShowButtonShapes) private var showButtonShapes
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: MenuViewModel
     private var isExpanded: Bool { viewModel.presentationStyle == .expanded }
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     
     var onStartGame: (GameType, Int) -> Void //triggers createGame in MessagesViewController
     
@@ -84,17 +86,38 @@ struct MainMenuView: View {
 
             VStack {// Main view
                 topSection
+                    .accessibilityRepresentation {
+                        if !isInSubmenu {
+                            topSection
+                        } else {
+                            EmptyView()
+                        }
+                    }
 
                 midSection
+                    .accessibilityRepresentation {
+                        if !isInSubmenu {
+                            midSection
+                        } else {
+                            EmptyView()
+                        }
+                    }
 
                 bottomSection
+                    .accessibilityRepresentation {
+                        if !isInSubmenu {
+                            bottomSection
+                        } else {
+                            EmptyView()
+                        }
+                    }
             }
         }
         .accessibilityHidden(showingRules)
         .overlay {
             if showingRules {
                 RulesView(gameType: availableGames[activeGameIndex].type, isExpanded: isExpanded) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                         showingRules = false
                     }
                 }
@@ -110,16 +133,16 @@ struct MainMenuView: View {
         }
         .accessibilityAction(.escape) {
             if showingThemes { // Closes the themes menu
-                withAnimation(.spring(response: 1, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 1, dampingFraction: 0.7).speed(motionSpeed)) {
                     showingThemes = false
                     activeThemeIndex = selectedThemeIndex
                 }
             } else if showingRules { // Closes the rules view
-                withAnimation(.easeInOut(duration: 0.4)) {
+                withAnimation(.easeInOut(duration: 0.4).speed(motionSpeed)) {
                     showingRules = false
                 }
             } else if isInSubmenu { // Exits the active game submenu
-                withAnimation {
+                withAnimation(.default.speed(motionSpeed)) {
                     activeSubmenu = nil
                 }
             } else { // Nothing is open to close, so let the system dismiss the whole view
@@ -134,20 +157,28 @@ struct MainMenuView: View {
             
             mainTitle
                 .accessibilityRepresentation {
-                    if showingThemes {
-                        themeTitleFace
-                    } else {
-                        gameTitleFace
-                    }
+                    //if !isInSubmenu {
+                        if showingThemes {
+                            themeTitleFace
+                        } else {
+                            gameTitleFace
+                        }
+                    //} else {
+                    //    EmptyView()
+                    //}
                 }
 
             mainSubtitle
                 .accessibilityRepresentation {
-                    if showingThemes {
-                        priceFace
-                    } else {
-                        winCounterFace
-                    }
+                    //if !isInSubmenu {
+                        if showingThemes {
+                            priceFace
+                        } else {
+                            winCounterFace
+                        }
+                    //} else {
+                    //    EmptyView()
+                    //}
                 }
     
             Divider()
@@ -197,12 +228,12 @@ struct MainMenuView: View {
                 insertion: .move(edge: titleTransitionEdge).combined(with: .opacity),
                 removal: .move(edge: titleTransitionEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
             ))
-            .animation(.easeInOut, value: activeGameIndex)
+            .animation(.easeInOut.speed(motionSpeed), value: activeGameIndex)
             .modifier(FlipOpacity(rotation: showingThemes ? 180 : 0))
             .accessibilityLabel("Selected game: \(availableGames[activeGameIndex].title)")
             .accessibilityHidden(showingThemes)
     }
-    
+
     private var themeTitleFace: some View {
         Text(LocalizedStringKey(themes[activeThemeIndex].title))
             .font(.largeTitle)
@@ -215,23 +246,23 @@ struct MainMenuView: View {
                 insertion: .move(edge: themeTitleTransitionEdge).combined(with: .opacity),
                 removal: .move(edge: themeTitleTransitionEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
             ))
-            .animation(.easeInOut, value: activeThemeIndex)
+            .animation(.easeInOut.speed(motionSpeed), value: activeThemeIndex)
             .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             .modifier(FlipOpacity(rotation: showingThemes ? 0 : 180))
             .accessibilityLabel("Selected theme: \(themes[activeThemeIndex].title)")
             .accessibilityHidden(!showingThemes)
     }
-    
+
     private var mainSubtitle: some View {
         ZStack {
             winCounterFace
-                    
+
             priceFace
         }
         .font(isExpanded ? .headline : .subheadline)
         .fontWeight(.medium)
         .padding(.top, isExpanded ? 15 : 0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isExpanded)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7).speed(motionSpeed), value: isExpanded)
         .scaleEffect(isExpanded ? 1.2 : 1)
         .rotation3DEffect(.degrees(showingThemes ? -180 : 0), axis: (x: 0, y: 1, z: 0))
     }
@@ -252,7 +283,7 @@ struct MainMenuView: View {
                 .foregroundColor(.white)
                 .shadow(color: .white.opacity(0.33), radius: 5)
                 .contentTransition(.numericText(countsDown: availableGames[activeGameIndex].wins < lastWinsShown))
-                .animation(.snappy, value: availableGames[activeGameIndex].wins)
+                .animation(.snappy.speed(motionSpeed), value: availableGames[activeGameIndex].wins)
                 .onChange(of: availableGames[activeGameIndex].wins) { _, newValue in
                     lastWinsShown = newValue
                 }
@@ -274,7 +305,7 @@ struct MainMenuView: View {
                 insertion: .move(edge: themeTitleTransitionEdge).combined(with: .opacity),
                 removal: .move(edge: themeTitleTransitionEdge == .trailing ? .leading : .trailing).combined(with: .opacity)
             ))
-            .animation(.easeInOut, value: activeThemeIndex) //animates only on theme swipes — internal state toggles snap
+            .animation(.easeInOut.speed(motionSpeed), value: activeThemeIndex) //animates only on theme swipes — internal state toggles snap
             .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             .modifier(FlipOpacity(rotation: showingThemes ? 0 : 180))
             .accessibilityHidden(!showingThemes)
@@ -324,12 +355,12 @@ struct MainMenuView: View {
             let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.impactOccurred()
             if showingThemes {
-                withAnimation(.spring(response: 0.67, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 0.67, dampingFraction: 0.7).speed(motionSpeed)) {
                     showingThemes = false
                     activeThemeIndex = selectedThemeIndex
                 }
             } else {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.7).speed(motionSpeed)) {
                     showingRules = true
                 }
             }
@@ -400,7 +431,7 @@ struct MainMenuView: View {
                 impact.impactOccurred()
                 themeWheelKey += 1
                 activeThemeIndex = selectedThemeIndex
-                withAnimation(.spring(response: 0.67, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 0.67, dampingFraction: 0.7).speed(motionSpeed)) {
                     showingThemes = true
                 }
                 
@@ -514,20 +545,21 @@ struct MainMenuView: View {
             onActiveIndexChange: { newIndex, direction in // handle real-time mid-swipe updates
                 if activeGameIndex != newIndex {
                     titleTransitionEdge = direction
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                         activeGameIndex = newIndex
                     }
                 }
             },
             userSelectedGame: { index in // handle selecting a game
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                     activeSubmenu = availableGames[index].type
                 }
-                withAnimation(.linear(duration: 0.05).delay(0.12)) { //wait a bit then trigger a fast fade
+                withAnimation(.linear(duration: 0.05).delay(0.12).speed(motionSpeed)) { //wait a bit then trigger a fast fade
                     isTitleBarHidden = true
                 }
+                let speed = motionSpeed
                 Task {
-                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                    try? await Task.sleep(nanoseconds: UInt64(300_000_000.0 / speed)) // 0.3 seconds (scaled for reduce motion)
                     isCardWheelHidden = true //hide AFTER the animation to render the cards invisible so they dont clip in when transitioning between compact and expanded in the subview
                 }
             },
@@ -552,22 +584,22 @@ struct MainMenuView: View {
             onActiveIndexChange: { newIndex, direction in
                 if activeThemeIndex != newIndex {
                     themeTitleTransitionEdge = (direction == .trailing) ? .leading : .trailing
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                         activeThemeIndex = newIndex
                     }
                 }
             },
             onThemeSelected: { selectedIndex in
                 let theme = themes[selectedIndex]
-                
+
                 if let required = theme.requiredWins, WinTracker.shared.totalWins < required {
                     return // Theme is locked! Add haptic error buzz?
                 }
-                
+
                 cardBackSelection.selectedName = theme.logoCard // Commit the theme change to the global store
-                
+
                 // Update the local UI state and animate the menu closing
-                withAnimation(.spring(response: 1, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 1, dampingFraction: 0.7).speed(motionSpeed)) {
                     selectedThemeIndex = selectedIndex
                     showingThemes = false
                 }
@@ -601,15 +633,15 @@ struct MainMenuView: View {
     private func commitThemeSelection() {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
             selectedThemeIndex = activeThemeIndex
         }
         cardBackSelection.selectedName = themes[activeThemeIndex].logoCard
-        
-        withAnimation(.spring(response: 0.67, dampingFraction: 0.7)) { //send the user back to the main menu
+
+        withAnimation(.spring(response: 0.67, dampingFraction: 0.7).speed(motionSpeed)) { //send the user back to the main menu
             showingThemes = false
         }
-        
+
     }
 
     @ViewBuilder
@@ -632,12 +664,13 @@ struct MainMenuView: View {
                         .tint(.white)
                 } else if showingRestore {
                     Button {
+                        let speed = motionSpeed
                         Task {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8).speed(speed)) {
                                 isRestoring = true
                             }
                             await store.restore()
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8).speed(speed)) {
                                 isRestoring = false
                                 showingRestore = false
                             }
@@ -648,7 +681,7 @@ struct MainMenuView: View {
                     .buttonStyle(.plain)
                 } else if let price = store.displayPrice(for: productID) {
                     Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8).speed(motionSpeed)) {
                             showingRestore = true
                         }
                     } label: {
@@ -679,7 +712,7 @@ struct MainMenuView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: isExpanded)
+        .animation(.easeInOut(duration: 0.25).speed(motionSpeed), value: isExpanded)
         .transition(.offset(y: UIScreen.main.bounds.height / 2))
     }
     
@@ -732,7 +765,7 @@ struct MainMenuView: View {
             ginExpandedSubmenu
                 .hidden() //here to match crazy8sSubmenuView size to ginSubmenuView
         }
-        .animation(.easeInOut(duration: 0.25), value: isExpanded)
+        .animation(.easeInOut(duration: 0.25).speed(motionSpeed), value: isExpanded)
         .transition(.offset(y: UIScreen.main.bounds.height / 2))
     }
     
@@ -788,7 +821,7 @@ struct MainMenuView: View {
             ginExpandedSubmenu
                 .hidden() //here to match golfSubmenuView size to ginSubmenuView
         }
-        .animation(.easeInOut(duration: 0.25), value: isExpanded)
+        .animation(.easeInOut(duration: 0.25).speed(motionSpeed), value: isExpanded)
         .transition(.offset(y: UIScreen.main.bounds.height / 2))
     }
     
@@ -880,7 +913,7 @@ struct MainMenuView: View {
                                 .onChange(of: cardsAnimatedAway) { _, newValue in
                                     if newValue == 8 {
                                         if (activeSubmenu == .golf) {
-                                            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                                            withAnimation(.easeInOut(duration: 0.8).speed(motionSpeed).repeatForever(autoreverses: true)) {
                                                 isBubblePulsating = true
                                             }
                                         }
@@ -927,14 +960,15 @@ struct MainMenuView: View {
     private var backButton: some View {
         Button(action: {
             isCardWheelHidden = false
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                 activeSubmenu = nil
             }
-            withAnimation(.linear(duration: 0.05).delay(0.1)) { // Bring the title back
+            withAnimation(.linear(duration: 0.05).delay(0.1).speed(motionSpeed)) { // Bring the title back
                 isTitleBarHidden = false
             }
+            let speed = motionSpeed
             Task {
-                try? await Task.sleep(nanoseconds: 200_000_000)
+                try? await Task.sleep(nanoseconds: UInt64(200_000_000.0 / speed))
                 cardsAnimatedAway = 0
                 hiddenAnimatedAwayCards = 0
                 golfAnimationOrder = [0, 1, 2, 3, 5].shuffled() + [4]
@@ -979,7 +1013,7 @@ struct MainMenuView: View {
             .onChange(of: cardsAnimatedAway) { _, newValue in
                 if newValue == 7 {
                     if (activeSubmenu == .ginRummy || activeSubmenu == .crazy8s) {
-                        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        withAnimation(.easeInOut(duration: 0.8).speed(motionSpeed).repeatForever(autoreverses: true)) {
                             isBubblePulsating = true
                         }
                     }
@@ -1008,11 +1042,12 @@ struct MainMenuView: View {
     
     private var startButton: some View {
         Button(action: {
+            let speed = motionSpeed
             DispatchQueue.global(qos: .userInitiated).async {
                 let selectedGameType = availableGames[activeGameIndex].type
                 onStartGame(selectedGameType, handSize)
                 DispatchQueue.main.async {
-                    withAnimation(.spring(duration: 0.7)) {
+                    withAnimation(.spring(duration: 0.7).speed(speed)) {
                         cardsAnimatedAway += 1
                     }
                     if cardsAnimatedAway <= 5 {
@@ -1022,7 +1057,7 @@ struct MainMenuView: View {
                         SoundManager.instance.playCardDeal()
                     }
                     Task { //wait exactly 0.7 seconds then hide the card instantly at the destination so we dont see it animating away
-                        try? await Task.sleep(nanoseconds: 700_000_000)
+                        try? await Task.sleep(nanoseconds: UInt64(700_000_000.0 / speed))
                         await MainActor.run {
                             hiddenAnimatedAwayCards += 1
                         }
@@ -1035,7 +1070,7 @@ struct MainMenuView: View {
                 .foregroundColor(.white)
                 .scaleEffect(cardsAnimatedAway < 7 ? (isPulsating ? 1.05 : 1) : 1.0)
                 .onAppear {
-                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                    withAnimation(.easeInOut(duration: 0.8).speed(motionSpeed).repeatForever(autoreverses: true)) {
                         isPulsating = true
                     }
                 }
@@ -1097,7 +1132,7 @@ struct MainMenuView: View {
             .offset(y: isSelected ? -15 : 15)     // Selected goes up, non-selected goes down
             .brightness(isSelected ? 0 : -0.2)    // Dim the non-selected card slightly
             .onTapGesture {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.6).speed(motionSpeed)) {
                     handSize = selectedHandSize
                 }
             }

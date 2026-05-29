@@ -11,6 +11,8 @@ import SwiftUI
 struct GolfGameView: View {
     @EnvironmentObject var game: GolfManager
     @Environment(\.accessibilityShowButtonShapes) private var showButtonShapes
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @ObservedObject private var cardBackSelection = CardBackSelection.shared
 
     @State private var deckFrame: CGRect = .zero
@@ -72,9 +74,7 @@ struct GolfGameView: View {
                     .zIndex(4)
             }
         }
-        .background(
-            FeltBackgroundView()
-        )
+        .background(FeltBackgroundView(inGame: true))
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -93,11 +93,11 @@ struct GolfGameView: View {
                     joinedCount: game.isJoiningPhase ? game.seats.filter { $0 != GolfManager.unclaimedSeat }.count : nil,
                     totalCount: game.isJoiningPhase ? game.seats.count : nil
                 )
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
             else if game.phase == .gameEndPhase {
                 WinScreenView(playerHasWon: game.playerHasWon, winMessage: String(localized: "You: \(game.playerScore)\nBest: \(game.opponentScore)", comment: "Win screen message for Golf"))
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
         }
         .accessibilityHidden(showRules)
@@ -105,7 +105,7 @@ struct GolfGameView: View {
             if showRules {
                 RulesView(gameType: .golf, isExpanded: true, onDismiss: { showRules = false })
                     .frame(maxWidth: UIScreen.main.bounds.width)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2).speed(motionSpeed)))
             }
         }
         .onChange(of: game.turnNumber) { lastTurn, newTurn in
@@ -168,7 +168,7 @@ struct GolfGameView: View {
                 .frame(height: 130)
                 .offset(x: CGFloat(-i) * 3, y: CGFloat(-i) * 3)
                 .shadow(radius: i == 4 ? 1 : 8)
-                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4), value: isMyTurn)
+                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4).speed(motionSpeed), value: isMyTurn)
                 .background {
                     if i == 4 { // 4 is top card, the stack proceeds up-left, not down-right
                         GeometryReader { geo in
@@ -218,7 +218,7 @@ struct GolfGameView: View {
             game.drawFromDeck()
             lastDrawSource = .deck
             SoundManager.instance.playCardDeal()
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8).speed(motionSpeed)) {
                 hoveringCardOffset = .zero
                 hoveringFlipRotation = 0
             }
@@ -226,7 +226,7 @@ struct GolfGameView: View {
             SoundManager.instance.playErrorFeedback()
         }
     }
-    
+
     private var discardPile: some View {
         ZStack {
             Color.clear // A ghost view reserves the space so Spacers don't collapse when discardPile.count == 0
@@ -283,7 +283,7 @@ struct GolfGameView: View {
             game.drawFromDiscard()
             lastDrawSource = .discard
             SoundManager.instance.playCardDeal()
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8).speed(motionSpeed)) {
                 hoveringCardOffset = .zero
             }
         } else if game.phase == .placementPhase && game.drewFromDeck {
@@ -297,7 +297,7 @@ struct GolfGameView: View {
         guard !isAnimatingPlacement else { return }
         isAnimatingPlacement = true
 
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85).speed(motionSpeed)) {
             hoveringCardOffset = CGSize(
                 width: discardFrame.midX - overlayCenter.x,
                 height: discardFrame.midY - overlayCenter.y
@@ -305,7 +305,7 @@ struct GolfGameView: View {
             hoveringShadowRadius = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35 / motionSpeed) {
             game.discardDrawnCard()
             hoveringCardOffset = .zero
             hoveringFlipRotation = 0
@@ -319,7 +319,7 @@ struct GolfGameView: View {
             Button(action: {
                 let impact = UIImpactFeedbackGenerator(style: .light)
                 impact.impactOccurred()
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                     showRules = true
                 }
             }) {
@@ -362,13 +362,13 @@ struct GolfGameView: View {
                 .shadow(color: .black.opacity(0.6), radius: hoveringShadowRadius)
                 .scaleEffect(isHovering ? 1.1 : 1.0)
                 .rotationEffect(.degrees(isHovering ? (wobblePhase ? 2 : -2) : 0))
-                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: wobblePhase)
+                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true).speed(motionSpeed), value: wobblePhase)
                 .offset(
                     isDraggingFromSource
                         ? CGSize(width: dragLocation.x - overlayCenter.x, height: dragLocation.y - overlayCenter.y)
                         : CGSize(width: hoveringCardOffset.width, height: hoveringCardOffset.height + (isHovering ? -75 : 0))
                 )
-                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isAnimatingPlacement)
+                .animation(.spring(response: 0.35, dampingFraction: 0.85).speed(motionSpeed), value: isAnimatingPlacement)
                 .zIndex(3)
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
                 .onAppear {
@@ -413,14 +413,14 @@ struct GolfGameView: View {
         .shadow(color: game.playerHasWon ? Color("winYellow").opacity(0.5) : .clear, radius: winGlowRadius) //to increase the yellow's intensity
         .onAppear {
             if game.playerHasWon {
-                withAnimation(.linear(duration: 0.67)) {
+                withAnimation(.linear(duration: 0.67).speed(motionSpeed)) {
                     winGlowRadius = 10
                 }
             }
         }
         .onChange(of: game.playerHasWon) { _, hasWon in
             if hasWon {
-                withAnimation(.linear(duration: 0.33)) {
+                withAnimation(.linear(duration: 0.33).speed(motionSpeed)) {
                     winGlowRadius = 10
                 }
             } else { //is this else necessary? its initialized to 0 anyway
@@ -459,7 +459,7 @@ struct GolfGameView: View {
         )
         
         DispatchQueue.main.async {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
                 deckToDiscardOffset = CGSize(
                     width: discardFrame.midX - overlayCenter.x,
                     height: discardFrame.midY - overlayCenter.y
@@ -467,8 +467,8 @@ struct GolfGameView: View {
                 deckToDiscardRotation = 0 // flip to face up
             }
         }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55 / motionSpeed) {
             game.opponentReplaceCard()
             deckToDiscardCard = nil
             deckToDiscardOffset = .zero
@@ -519,7 +519,7 @@ struct GolfGameView: View {
 
         // Animate hovering card toward the target slot
         if let slotFrame = playerSlotFrames[index] {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85).speed(motionSpeed)) {
                 hoveringCardOffset = CGSize(
                     width: slotFrame.midX - overlayCenter.x,
                     height: slotFrame.midY - overlayCenter.y
@@ -530,7 +530,7 @@ struct GolfGameView: View {
 
         // Animate the tapped card toward the discard pile
         if let slotFrame = playerSlotFrames[index] {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85).speed(motionSpeed)) {
                 departingIndex = index
                 departingOffset = CGSize(
                     width: discardFrame.midX - slotFrame.midX,
@@ -540,7 +540,7 @@ struct GolfGameView: View {
         }
 
         // Commit the swap after animations land
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35 / motionSpeed) {
             game.replaceCard(at: index)
             departingIndex = nil
             departingOffset = .zero
@@ -558,7 +558,7 @@ struct GolfGameView: View {
                 hoveringFlipRotation = -180
                 game.drawFromDeck()
                 lastDrawSource = .deck
-                withAnimation(.easeOut(duration: 0.3)) {
+                withAnimation(.easeOut(duration: 0.3).speed(motionSpeed)) {
                     hoveringFlipRotation = 0
                 }
             } else {
@@ -597,7 +597,7 @@ struct GolfGameView: View {
         }
 
         // Not dropped on a slot — snap to center as hovering card
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8).speed(motionSpeed)) {
             hoveringCardOffset = .zero
         }
     }

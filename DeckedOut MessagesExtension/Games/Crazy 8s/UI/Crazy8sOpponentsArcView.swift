@@ -9,6 +9,8 @@ import SwiftUI
 
 struct Crazy8sOpponentsArcView: View {
     @EnvironmentObject var game: Crazy8sManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
 
     let discardPileZone: CGRect
     let deckZone: CGRect
@@ -150,7 +152,7 @@ struct Crazy8sOpponentsArcView: View {
                     .offset(y: yOff)
                     .shadow(color: .black.opacity(0.25), radius: 20)
                     .animation(
-                        .spring(response: 0.6, dampingFraction: 0.7).delay(Double(idx) * 0.1),
+                        .spring(response: 0.6, dampingFraction: 0.7).delay(Double(idx) * 0.1).speed(motionSpeed),
                         value: game.isGameOver
                     )
             }

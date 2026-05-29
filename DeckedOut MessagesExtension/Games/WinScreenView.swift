@@ -13,6 +13,8 @@ struct WinScreenView: View {
     let winMessage: String
 
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @State private var animateIn = false
     @State private var dismissed = false
 
@@ -77,7 +79,7 @@ struct WinScreenView: View {
                 .opacity(animateIn ? 1.0 : 0.0)
             }
             .onAppear {
-                withAnimation(.spring(response: 1, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 1, dampingFraction: 0.7).speed(motionSpeed)) {
                     animateIn = true
                 }
                 if playerHasWon && WinTracker.shared.totalWins >= 2 {
@@ -91,7 +93,7 @@ struct WinScreenView: View {
     }
 
     private func dismiss() {
-        withAnimation(.easeOut(duration: 0.3)) {
+        withAnimation(.easeOut(duration: 0.3).speed(motionSpeed)) {
             dismissed = true
         }
     }

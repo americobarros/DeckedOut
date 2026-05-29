@@ -8,13 +8,14 @@
 import SwiftUI
 
 /// Shared felt background used across all game views, transcripts, menus, and overlays.
-/// Adapts to dark mode and the increased-contrast accessibility setting.
 struct FeltBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    
+    var inGame: Bool = false
 
     private var useDarkBackground: Bool {
-        colorScheme == .dark || colorSchemeContrast == .increased
+        (colorScheme == .dark && inGame) || colorSchemeContrast == .increased
     }
 
     var body: some View {

@@ -9,6 +9,8 @@ import SwiftUI
 
 struct GolfOpponentsSectionView: View {
     @EnvironmentObject var game: GolfManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
 
     let discardPileZone: CGRect
     let deckZone: CGRect
@@ -189,7 +191,7 @@ struct GolfOpponentsSectionView: View {
                                 .opacity(isCancelled ? 0.8 : 1.0)
                                 .shadow(color: .black.opacity(0.25), radius: 4)
                                 .animation(
-                                    .spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1),
+                                    .spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1).speed(motionSpeed),
                                     value: revealAll
                                 )
                         }

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ThemeCardWheel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.4 : 1.0 } //animations run at 40% speed (2.5x slower) when Reduce Motion is enabled
     let themes: [CardBackTheme]
     let showingThemes: Bool //drives the per-card flip in from the game wheel
     var onActiveIndexChange: (Int, Edge) -> Void // (themeIndex, direction the new title enters from)
@@ -71,8 +73,8 @@ struct ThemeCardWheel: View {
         let newIndex = currentCenterIndex + shift
         animatedOffset = dragOffset + (CGFloat(shift) * stepWidth)
         currentCenterIndex = newIndex
-        
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animatedOffset = 0
         }
         notifyActiveChange(for: newIndex)
@@ -109,7 +111,7 @@ struct ThemeCardWheel: View {
                             // Set animatedOffset to keep cards visually in place, then animate to 0
                             animatedOffset = CGFloat(virtualIndex - currentCenterIndex) * stepWidth
                             currentCenterIndex = virtualIndex
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
                                 animatedOffset = 0
                             }
                             notifyActiveChange(for: virtualIndex)
@@ -121,7 +123,7 @@ struct ThemeCardWheel: View {
             .frame(width: cardWidth, height: cardHeight)
         }
         .offset(x: currentXOffset)
-        .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.8), value: dragTranslation)
+        .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.8).speed(motionSpeed), value: dragTranslation)
         .onChange(of: activeIndex) { _, newValue in
             if isDragging {
                 notifyActiveChange(for: newValue)
@@ -151,7 +153,7 @@ struct ThemeCardWheel: View {
                     animatedOffset = dragOffset + CGFloat(currentCenterIndex - newIndex) * stepWidth
                     currentCenterIndex = newIndex
 
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
                         animatedOffset = 0
                     }
                     notifyActiveChange(for: newIndex)

@@ -508,8 +508,12 @@ class MessagesViewController: MSMessagesAppViewController {
             }
         }
 
-        // VoiceOver users don't generate a "recent touch interaction" with their move, so conversation.send only stages the message in the input field instead of sending it. Collapsing to compact surfaces the input field with the Send button so the user knows to send manually.
-        if UIAccessibility.isVoiceOverRunning {
+        // Assistive tech users don't generate a "recent touch interaction" with their move, so conversation.send only stages the message in the input field instead of sending it. Collapsing to compact surfaces the input field with the Send button so the user knows to send manually. Voice Control has no public detection API, so we check related assistive tech as a proxy.
+        if UIAccessibility.isVoiceOverRunning
+            || UIAccessibility.isSwitchControlRunning
+            || UIAccessibility.isAssistiveTouchRunning
+            || UIAccessibility.isSpeakScreenEnabled
+            || UIAccessibility.isSpeakSelectionEnabled {
             requestPresentationStyle(.compact)
         }
     }
@@ -548,8 +552,12 @@ class MessagesViewController: MSMessagesAppViewController {
 
         conversation.send(message)
 
-        // VoiceOver users don't generate a "recent touch interaction" with their join, so conversation.send only stages the message in the input field instead of sending it. Collapsing to compact surfaces the input field with the Send button so the user knows to send manually.
-        if UIAccessibility.isVoiceOverRunning {
+        // Assistive tech users don't generate a "recent touch interaction" with their join, so conversation.send only stages the message in the input field instead of sending it. Collapsing to compact surfaces the input field with the Send button so the user knows to send manually. Voice Control has no public detection API, so we check related assistive tech as a proxy.
+        if UIAccessibility.isVoiceOverRunning
+            || UIAccessibility.isSwitchControlRunning
+            || UIAccessibility.isAssistiveTouchRunning
+            || UIAccessibility.isSpeakScreenEnabled
+            || UIAccessibility.isSpeakSelectionEnabled {
             requestPresentationStyle(.compact)
         }
     }

@@ -12,6 +12,8 @@ struct WaitingOverlayView: View {
     var totalCount: Int? = nil
     var isSinglePlayer: Bool = true
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @State private var isAnimating = false
     @State private var dotCount = 0
 
@@ -56,6 +58,7 @@ struct WaitingOverlayView: View {
             withAnimation( //for the opacity pulse
                 .easeInOut(duration: 1)
                 .repeatForever(autoreverses: true)
+                .speed(motionSpeed)
             ) {
                 isAnimating = true
             }

@@ -9,7 +9,9 @@ import SwiftUI
 
 struct GolfPlayerHandView: View {
     @EnvironmentObject var game: GolfManager
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
+
     //Passed Arguments
     @Binding var cards: [Card]
     var faceUpIndices: Set<Int> = []
@@ -72,7 +74,7 @@ struct GolfPlayerHandView: View {
                                     .rotationEffect(isAnimating ? animationRotationCorrection : .zero)
                                     .scaleEffect(isDragging ? 1.1 : 1.0)
                                     .opacity(isCancelled ? 0.8 : 1.0)
-                                    .animation(.easeInOut(duration: 0.3), value: isCancelled)
+                                    .animation(.easeInOut(duration: 0.3).speed(motionSpeed), value: isCancelled)
                                     .offset(isDeparting ? departingOffset : (isDragging ? dragOffset : .zero))
                                     .offset(isAnimating ? animationOffset : .zero)
 
@@ -159,14 +161,14 @@ struct GolfPlayerHandView: View {
         animationOffset = offsetToDraw
         animationRotationCorrection = .zero
         
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animationOffset = .zero
             if lastDrawSource == .deck {
                 flipRotation = 0
             }
         }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 / motionSpeed) {
             animatingCard = nil
             flipRotation = 0
         }

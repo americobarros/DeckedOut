@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SuitSelectionOverlay: View {
     @EnvironmentObject var game: Crazy8sManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     let suits = Suit.allCases
     
     var body: some View {
@@ -26,7 +28,7 @@ struct SuitSelectionOverlay: View {
                 HStack(spacing: 12) {
                     ForEach(suits, id: \.self) { suit in
                         Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7).speed(motionSpeed)) {
                                 game.submitChosenSuit(suit)
                             }
                         }) {
@@ -82,9 +84,11 @@ struct SuitSelectionOverlay: View {
 
 // MARK: - Custom Button Style for Tactility
 struct GlassButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.5 : 1.0 }
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.92 : 1.0) /// Scale down slightly when pressed
-            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7).speed(motionSpeed), value: configuration.isPressed)
     }
 }

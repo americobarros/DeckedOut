@@ -9,7 +9,9 @@ import SwiftUI
 
 struct GolfOpponentHandView: View {
     @EnvironmentObject var game: GolfManager
-    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
+
     //Passed Arguments
     let cards: [Card]
     var faceUpIndices: Set<Int> = []
@@ -74,7 +76,7 @@ struct GolfOpponentHandView: View {
                                     .shadow(color: game.opponentHasWon ? Color("lossRed") : .clear, radius: winGlowRadius)
                                     .shadow(color: game.opponentHasWon ? Color("lossRed").opacity(0.5) : .clear, radius: winGlowRadius) //for extra red intensity
                                     .opacity(isCancelled ? 0.8 : 1.0)
-                                    .animation(.easeInOut(duration: 0.3), value: isCancelled)
+                                    .animation(.easeInOut(duration: 0.3).speed(motionSpeed), value: isCancelled)
                                     .scaleEffect(isDeparting ? departingScale : 1.0)
                                     .offset(isDeparting ? departingOffset : .zero)
                                 
@@ -96,7 +98,7 @@ struct GolfOpponentHandView: View {
                                 }
                             )
                             .animation(
-                                isDeparting ? nil : .spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1),
+                                isDeparting ? nil : .spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1).speed(motionSpeed),
                                 value: revealAll
                             )
                             .frame(width: cardWidth, height: cardHeight)
@@ -109,14 +111,14 @@ struct GolfOpponentHandView: View {
         .frame(height: cardHeight * CGFloat(rows) + gridSpacingV)
         .onAppear {
             if game.opponentHasWon {
-                withAnimation(.linear(duration: 0.67)) {
+                withAnimation(.linear(duration: 0.67).speed(motionSpeed)) {
                     winGlowRadius = 10
                 }
             }
         }
         .onChange(of: game.opponentHasWon) { _, hasWon in
             if hasWon {
-                withAnimation(.linear(duration: 0.33)) {
+                withAnimation(.linear(duration: 0.33).speed(motionSpeed)) {
                     winGlowRadius = 10
                 }
             } else { //is this else necessary? its initialized to 0 anyway
@@ -159,7 +161,7 @@ struct GolfOpponentHandView: View {
             
             // Animate both simultaneously on next run loop (ensures initial state renders first)
             DispatchQueue.main.async {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
                     departingOffset = toLocalOffset(screenDeltaDeparting)
                     departingRotation = 0
                     departingScale = 1.0 / sizeScale // grows to discard (canonical) size
@@ -168,9 +170,9 @@ struct GolfOpponentHandView: View {
                     arrivingScale = 1.0 // shrinks to hand size
                 }
             }
-            
+
             // Commit the swap after animations complete
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55 / motionSpeed) {
                 game.opponentReplaceCard()
                 game.opponentDepartingFromIndex = nil
                 

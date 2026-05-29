@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MenuCardWheel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.4 : 1.0 } //animations run at 40% speed (2.5x slower) when Reduce Motion is enabled
     let games: [MenuGame]
     let showingThemes: Bool //drives the per-card flip toward the theme wheel
     var onActiveIndexChange: (Int, Edge) -> Void // (gameIndex, direction the new title enters from)
@@ -71,7 +73,7 @@ struct MenuCardWheel: View {
         animatedOffset = dragOffset + (CGFloat(shift) * stepWidth)
         currentCenterIndex = newIndex
         
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animatedOffset = 0
         }
         notifyActiveChange(for: newIndex)
@@ -97,7 +99,7 @@ struct MenuCardWheel: View {
                     .shadow(color: .black.opacity(0.10), radius: 10, y: 20)
                     .onTapGesture {
                         if virtualIndex == currentCenterIndex {
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).speed(motionSpeed)) {
                                 hasSelectedGame = true
                             }
                             userSelectedGame(realIndex)  //parent view should handle exact parent view changes
@@ -109,8 +111,8 @@ struct MenuCardWheel: View {
             .frame(width: cardWidth, height: cardHeight)
         }
         .offset(x: currentXOffset)
-        .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.8), value: dragTranslation)
-        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: hasSelectedGame)
+        .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.8).speed(motionSpeed), value: dragTranslation)
+        .animation(.spring(response: 0.6, dampingFraction: 0.7).speed(motionSpeed), value: hasSelectedGame)
         .allowsHitTesting(!hasSelectedGame) // Disable interaction while opening submenu
         .onChange(of: activeIndex) { _, newValue in
             if isDragging {
@@ -134,7 +136,7 @@ struct MenuCardWheel: View {
                     let isUpward = verticalMove < -50 || verticalVelocity < -150 // Check if the movement is strongly upward
                     let isPrimarilyVertical = abs(verticalMove) > abs(horizontalMove) * 1.5 //Check if the gesture is PRIMARILY vertical (avoids diagonals)
                     if isUpward && isPrimarilyVertical {
-                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7).speed(motionSpeed)) {
                             hasSelectedGame = true
                         }
                         userSelectedGame(gameIndex(for: currentCenterIndex))
@@ -156,7 +158,7 @@ struct MenuCardWheel: View {
         .accessibilityValue(activeGameTitle)
         .accessibilityHint("Swipe up or down to change game. Double tap to open the \(games[gameIndex(for: currentCenterIndex)].title) menu.")
         .accessibilityAction { // Default VoiceOver Activation Action
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).speed(motionSpeed)) {
                 hasSelectedGame = true
             }
             userSelectedGame(gameIndex(for: currentCenterIndex))

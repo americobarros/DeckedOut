@@ -11,6 +11,8 @@ import SwiftUI
 struct Crazy8sGameView: View {
     @EnvironmentObject var game: Crazy8sManager
     @Environment(\.accessibilityShowButtonShapes) private var showButtonShapes
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @ObservedObject private var cardBackSelection = CardBackSelection.shared
 
     @State private var deckFrame: CGRect = .zero
@@ -33,7 +35,7 @@ struct Crazy8sGameView: View {
 
             }
         }
-        .background(FeltBackgroundView())
+        .background(FeltBackgroundView(inGame: true))
         .overlay {
             if game.userNeedsToChooseSuit {
                 SuitSelectionOverlay()
@@ -45,11 +47,11 @@ struct Crazy8sGameView: View {
                     joinedCount: game.isJoiningPhase ? game.seats.filter { $0 != Crazy8sManager.unclaimedSeat }.count : nil,
                     totalCount: game.isJoiningPhase ? game.seats.count : nil
                 )
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
             else if game.phase == .gameEndPhase {
                 WinScreenView(playerHasWon: game.playerHasWon, winMessage: String(localized: "Out!", comment: "Win screen message for Crazy 8s"))
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
         }
         .accessibilityHidden(showRules)
@@ -57,7 +59,7 @@ struct Crazy8sGameView: View {
             if showRules {
                 RulesView(gameType: .crazy8s, isExpanded: true, onDismiss: { showRules = false })
                     .frame(maxWidth: UIScreen.main.bounds.width)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2).speed(motionSpeed)))
             }
         }
         .onChange(of: game.turnNumber) { lastTurn, newTurn in
@@ -123,7 +125,7 @@ struct Crazy8sGameView: View {
                 .frame(height: 145)
                 .offset(x: CGFloat(-i) * 3, y: CGFloat(-i) * 3)
                 .shadow(radius: i == 4 ? 1 : 8)
-                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4), value: isMyTurn)
+                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4).speed(motionSpeed), value: isMyTurn)
                 .background {
                     if i == 4 { // 4 is top card, the stack proceeds up-left, not down-right
                         GeometryReader { geo in
@@ -194,7 +196,7 @@ struct Crazy8sGameView: View {
                     .shadow(color: isDraggedCardPlayable && isHoveringDiscard ? .white : .black.opacity(0.2),
                             radius: isDraggedCardPlayable && isHoveringDiscard ? 15 : 5)
                     .scaleEffect(isDraggedCardPlayable && isHoveringDiscard ? 1.05 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: isHoveringDiscard)
+                    .animation(.easeInOut(duration: 0.2).speed(motionSpeed), value: isHoveringDiscard)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -229,7 +231,7 @@ struct Crazy8sGameView: View {
                     Button(action: {
                         let impact = UIImpactFeedbackGenerator(style: .light)
                         impact.impactOccurred()
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                             showRules = true
                         }
                     }) {

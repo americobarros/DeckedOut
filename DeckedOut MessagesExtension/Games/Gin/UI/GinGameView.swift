@@ -12,6 +12,8 @@ struct GinGameView: View {
     @EnvironmentObject var game: GinRummyManager
     //@Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     @Environment(\.accessibilityShowButtonShapes) private var showButtonShapes
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var motionSpeed: Double { reduceMotion ? 0.66 : 1.0 } //animations should run at 2/3 speed when "Reduce Motion" is enabled
     @ObservedObject private var cardBackSelection = CardBackSelection.shared
 
     @State private var deckFrame: CGRect = .zero
@@ -34,18 +36,18 @@ struct GinGameView: View {
 
             }
         }
-        .background(FeltBackgroundView())
+        .background(FeltBackgroundView(inGame: true))
         .overlay {
             if game.phase == .idlePhase {
                 WaitingOverlayView(
                     joinedCount: game.isJoiningPhase ? game.seats.filter { $0 != GinRummyManager.unclaimedSeat }.count : nil,
                     totalCount: game.isJoiningPhase ? game.seats.count : nil
                 )
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
             else if game.phase == .gameEndPhase {
                 WinScreenView(playerHasWon: game.playerHasWon, winMessage: String(localized: "Gin Rummy!", comment: "Win screen message for Gin Rummy"))
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5).speed(motionSpeed)))
             }
         }
         .accessibilityHidden(showRules)
@@ -53,7 +55,7 @@ struct GinGameView: View {
             if showRules {
                 RulesView(gameType: .ginRummy, isExpanded: true, onDismiss: { showRules = false })
                     .frame(maxWidth: UIScreen.main.bounds.width)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2).speed(motionSpeed)))
             }
         }
         .onChange(of: game.turnNumber) { lastTurn, newTurn in
@@ -119,7 +121,7 @@ struct GinGameView: View {
                 .frame(height: 145)
                 .offset(x: CGFloat(-i) * 3, y: CGFloat(-i) * 3)
                 .shadow(radius: i == 4 ? 1 : 8)
-                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4), value: isMyTurn)
+                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4).speed(motionSpeed), value: isMyTurn)
                 .background {
                     if i == 4 { // 4 is top card, the stack proceeds up-left, not down-right
                         GeometryReader { geo in
@@ -181,7 +183,7 @@ struct GinGameView: View {
                     .shadow(color: game.phase == .discardPhase && isHoveringDiscard ? .white : .black.opacity(0.2),
                             radius: game.phase == .discardPhase && isHoveringDiscard ? 15 : 5)
                     .scaleEffect(game.phase == .discardPhase && isHoveringDiscard ? 1.05 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: isHoveringDiscard)
+                    .animation(.easeInOut(duration: 0.2).speed(motionSpeed), value: isHoveringDiscard)
             } else { // display an outline of where a discarded card *should* go
                 RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(Color.white.opacity(0.2), lineWidth: 2)
@@ -218,7 +220,7 @@ struct GinGameView: View {
                     Button(action: {
                         let impact = UIImpactFeedbackGenerator(style: .light)
                         impact.impactOccurred()
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.easeInOut(duration: 0.2).speed(motionSpeed)) {
                             showRules = true
                         }
                     }) {
@@ -277,14 +279,14 @@ struct GinGameView: View {
         .shadow(color: game.playerHasWon ? Color("winYellow") : .black.opacity(0.25), radius: handShadowRadius, x: (handShadowRadius - 5) / 2) //when handShadowRadius is 15 or 5 it results in offsets of 5 and 0
         .onAppear {
             if game.playerHasWon {
-                withAnimation(.linear(duration: 1)) {
+                withAnimation(.linear(duration: 1).speed(motionSpeed)) {
                     handShadowRadius = 15
                 }
             }
         }
         .onChange(of: game.playerHasWon) { _, hasWon in
             if hasWon {
-                withAnimation(.linear(duration: 0.33)) {
+                withAnimation(.linear(duration: 0.33).speed(motionSpeed)) {
                     handShadowRadius = 15
                 }
             } else { //is this else necessary? its initialized to 0 anyway
