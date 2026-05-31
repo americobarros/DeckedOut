@@ -25,19 +25,29 @@
           "locale" : "zh_Hans"
         },
         {
+          "description" : "美しい鯉柄のカード背面",
+          "displayName" : "鯉のテーマ",
+          "locale" : "ja"
+        },
+        {
           "description" : "A beautiful Koi fish patterned card back.",
           "displayName" : "Koi Fish Theme",
           "locale" : "en_US"
         },
         {
-          "description" : "寧靜的錦鯉圖案卡背",
-          "displayName" : "錦鯉主題",
-          "locale" : "zh_Hant"
-        },
-        {
           "description" : "평온한 비단잉어 패턴의 카드 뒷면",
           "displayName" : "비단잉어 테마",
           "locale" : "ko"
+        },
+        {
+          "description" : "Mặt sau thẻ bài với họa tiết cá Koi tuyệt đẹp.",
+          "displayName" : "Chủ đề Cá Koi",
+          "locale" : "vi"
+        },
+        {
+          "description" : "寧靜的錦鯉圖案卡背",
+          "displayName" : "錦鯉主題",
+          "locale" : "zh_Hant"
         }
       ],
       "productID" : "Sawyer.DeckedOut.Theme.Koi",
@@ -138,7 +148,7 @@
     "_developerTeamID" : "4X76DT8A23",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 801185286.99583495,
+    "_lastSynchronizedDate" : 801887023.82611704,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",

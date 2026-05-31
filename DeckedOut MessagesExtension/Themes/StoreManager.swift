@@ -15,6 +15,7 @@ final class StoreManager: ObservableObject {
     @Published private(set) var products: [String: Product] = [:]
     @Published private(set) var ownedProductIDs: Set<String> = []
     @Published private(set) var purchaseInFlight: String? = nil // productID currently being purchased, if any
+    @Published private(set) var isChinaStorefront: Bool = false
 
     private var updatesTask: Task<Void, Never>?
     private var hasStarted = false
@@ -25,6 +26,10 @@ final class StoreManager: ObservableObject {
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
+        if let storefront = await Storefront.current {
+            isChinaStorefront = storefront.countryCode == "CHN"
+        }
+        guard !isChinaStorefront else { return }
         updatesTask = listenForTransactions()
         await loadProducts()
         await refreshEntitlements()
@@ -54,6 +59,7 @@ final class StoreManager: ObservableObject {
     /// Returns true if the purchase completed (or was already owned). False on cancel/pending/failure.
     @discardableResult
     func purchase(_ productID: String) async -> Bool {
+        if isChinaStorefront { return true }
         if ownedProductIDs.contains(productID) { return true }
         guard let product = products[productID] else { return false }
 
@@ -82,18 +88,22 @@ final class StoreManager: ObservableObject {
 
     /// Required for non-consumable IAPs. Wire up to a "Restore Purchases" button.
     func restore() async {
+        if isChinaStorefront { return }
         try? await AppStore.sync()
         await refreshEntitlements()
     }
 
     /// Convenience: free themes (productID == nil) always count as owned.
+    /// On the China storefront everything is treated as owned because IAPs are disabled there.
     func isOwned(_ productID: String?) -> Bool {
+        if isChinaStorefront { return true }
         guard let id = productID else { return true }
         return ownedProductIDs.contains(id)
     }
 
-    /// Localized price for a product ID, or nil if products haven't loaded yet.
+    /// Localized price for a product ID, or nil if products haven't loaded yet or IAPs are disabled.
     func displayPrice(for productID: String) -> String? {
+        if isChinaStorefront { return nil }
         return products[productID]?.displayPrice
     }
 
