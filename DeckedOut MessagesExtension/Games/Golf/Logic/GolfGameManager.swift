@@ -98,10 +98,14 @@ class GolfManager: ObservableObject, GameEngine, GroupChatCapable {
     }
 
     /// Card-back to display on the deck/discard stacks when it isn't the user's turn.
-    /// Reflects the upcoming player's card back, so the deck updates as soon as the previous turn lands.
+    /// During animation, matches the seat currently drawing from the deck so the animated card and the deck share a back.
+    /// Otherwise reflects the upcoming player's back so the deck updates as soon as the previous turn lands.
     var opponentDeckCardBack: String {
         if isSinglePlayer { return opponentCardBack }
         guard !seats.isEmpty else { return "cardBackRed" }
+        if phase == .animationPhase || isAnimatingOpponentTurn {
+            return cardBack(forSeat: animatingOpponentSeat)
+        }
         let nextSeat = (animatingOpponentSeat + 1) % seats.count
         return cardBack(forSeat: nextSeat)
     }

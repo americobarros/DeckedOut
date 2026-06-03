@@ -163,13 +163,18 @@ struct Crazy8sOpponentHandView: View {
         animatingShadowRadius = 20
         animatingScaleCorrection = 1.0
 
+        //Only reveal the chosen suit on the final discard; queens animated earlier in a V1 1v1
+        //queen-then-card sequence shouldn't prematurely expose the suit picked after the final card.
+        let isFinalDiscard = (game.opponentCardPendingDiscard == card)
         withAnimation(.spring(response: 0.5, dampingFraction: 0.7).speed(motionSpeed)) {
             animatingRotation = 0 //card gets discarded face up
             animationOffset = offsetToDiscard
             animationRotationCorrection = .zero
             animatingShadowRadius = 0
             animatingScaleCorrection = 1.0 / sizeScale
-            game.activeSuitOverride = game.hiddenActiveSuitOverride
+            if isFinalDiscard {
+                game.activeSuitOverride = game.hiddenActiveSuitOverride
+            }
         }
 
         // Resolve animation state

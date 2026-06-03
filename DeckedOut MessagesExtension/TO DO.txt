@@ -1,9 +1,19 @@
--BRING CGFI BACK TO CHINA
+-2 draws 2 (DONE)
+-queens skip (DONE)
+-aces reverse direction (DONE)
 
--adjust prices of IAPs in app store
-    -aint nobody buying a card game skin for 50k in vietnam. 20k maybe
+-the main menu view broke on ipad (DONE)
 
--change crazy 8s rules text and golf winning text
+-change crazy 8s rules text (DONE)
+-translate "new game" button (DONE)
+
+-audio does not play starting a game and then switching to expanded view (DONE?)
+
+-fix first turn delay (DONE?)
+
+***----------*** UPDATE 3.3 Crazy 8s update ***----------*** NOMINATE!
+
+-the "selected" text is below the opponents hand's z value
 
 -opponent hands need to be lower z index than deck, but drawn cards still need to spawn on top (opponent hand sometimes clips above deck in groupchat modes)
 
@@ -15,13 +25,13 @@
 
 -localize all accessibility labels (Claude busy work)
 
-***----------*** UPDATE 3.2.1 minor accessibility update ***----------***
+***----------*** UPDATE 3.3.1 minor accessibility update ***----------***
 
 -GameCenter achievements (button on main menu?)
 
-***----------*** UPDATE 3.3.0 ACCESSIBILITY UPDATE ***----------*** NOMINATE!
+***----------*** UPDATE 3.4.0 GameCenter UPDATE ***----------***
 
--add Dou Dizhu (Chinese, 3 player by default)
+-add 4th game
 
 ***----------*** UPDATE 4.0.0 DOU DIZHU UPDATE ***----------***
 
@@ -85,6 +95,8 @@ Customizations to sell:
 
 
 Known issues:
+-in crazy 8s if discarding a queen and then another card on the final move, it does not animate the queen's discard
+-in 1v1 player if drawing cards user gets a queen, plays it, draws more cards and then discards again, the draws are not animated if the player draws more than 3
 -Cannot detect if a user is using Voice Control, just VoiceOver. add Voice Control to the check if a function comes out that checks for this
 
 QOL changes / possible updates:

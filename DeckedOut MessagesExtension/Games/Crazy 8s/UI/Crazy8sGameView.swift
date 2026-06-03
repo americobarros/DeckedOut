@@ -70,7 +70,7 @@ struct Crazy8sGameView: View {
             }
         }
         .task { //triggers the first time the view is presented
-            if !game.hasPerformedInitialLoad{
+            if !game.hasPerformedInitialLoad, hasOpponentVisualsToAnimate {
                 do { try await Task.sleep(nanoseconds: 500_000_000) } catch { }  // 0.5s
             }
             await animateOpponentsTurn()
@@ -109,6 +109,10 @@ struct Crazy8sGameView: View {
         game.phase == .mainPhase
     }
 
+    private var showsPlayerDeckBack: Bool {
+        isMyTurn || game.deckShouldShowPlayerBack
+    }
+
     private var theDeck: some View {
         ZStack {
             ForEach(0..<5) { i in
@@ -116,16 +120,16 @@ struct Crazy8sGameView: View {
                     Image(cardBackSelection.selectedName)
                         .resizable()
                         .aspectRatio(0.7, contentMode: .fit)
-                        .opacity(isMyTurn ? 1 : 0)
+                        .opacity(showsPlayerDeckBack ? 1 : 0)
                     Image(game.opponentDeckCardBack)
                         .resizable()
                         .aspectRatio(0.7, contentMode: .fit)
-                        .opacity(isMyTurn ? 0 : 1)
+                        .opacity(showsPlayerDeckBack ? 0 : 1)
                 }
                 .frame(height: 145)
                 .offset(x: CGFloat(-i) * 3, y: CGFloat(-i) * 3)
                 .shadow(radius: i == 4 ? 1 : 8)
-                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4).speed(motionSpeed), value: isMyTurn)
+                .animation(cardBackSelection.selectedName == game.opponentDeckCardBack ? nil : .easeInOut(duration: 0.4).speed(motionSpeed), value: showsPlayerDeckBack)
                 .background {
                     if i == 4 { // 4 is top card, the stack proceeds up-left, not down-right
                         GeometryReader { geo in
@@ -291,31 +295,78 @@ struct Crazy8sGameView: View {
     }
     
     
+    private var hasOpponentVisualsToAnimate: Bool {
+        game.cardsOpponentDrew > 0
+            || !game.opponentQueensPendingDiscard.isEmpty
+            || game.opponentCardPendingDiscard != nil
+            || game.pendingPlayerPenaltyDraws > 0
+    }
+
+
     // MARK: - Helper functions
     private func animateOpponentsTurn() async { //modifies backend, which triggers animation in opponentHandView
         if game.cardsOpponentDrew > 0 {
             for _ in 0..<game.cardsOpponentDrew {
                 game.opponentDrawFromDeck()
-                
+
                 do { // Wait for the draw animation to finish before drawing the next one
                     try await Task.sleep(nanoseconds: 800_000_000) // 0.8s
                 } catch { }
             }
         }
-        
+
+        //V1 1v1: animate any queens the opponent played before their final card (queens grant another turn).
+        if !game.opponentQueensPendingDiscard.isEmpty {
+            for queen in game.opponentQueensPendingDiscard {
+                game.opponentCardAnimatingToDiscard = queen
+                do {
+                    try await Task.sleep(nanoseconds: 600_000_000) // 0.6s for discard animation
+                } catch { }
+            }
+            game.opponentQueensPendingDiscard = []
+        }
+
         if let cardToDiscard = game.opponentCardPendingDiscard {
             game.opponentCardAnimatingToDiscard = cardToDiscard
 
             do {
                 try await Task.sleep(nanoseconds: 600_000_000) // 0.6s for discard animation
             } catch { }
-        } else if game.isAnimatingOpponentTurn {
-            game.isAnimatingOpponentTurn = false
-        } else if game.phase == .animationPhase {
-            game.phase = .mainPhase
-            game.checkHandPlayability()
         }
-        
+
+        // Penalty draws (e.g. opponent played a 2): animate cards from deck into the local player's hand
+        if game.pendingPlayerPenaltyDraws > 0 {
+            // Cross-fade the deck to the user's card back before the penalty cards animate out, so the card and deck share a back.
+            game.deckShouldShowPlayerBack = true
+            do {
+                try await Task.sleep(nanoseconds: 400_000_000) // 0.4s, matches the deck cross-fade duration
+            } catch { }
+
+            let count = game.pendingPlayerPenaltyDraws
+            for _ in 0..<count {
+                game.userDrawPenaltyCard()
+                do {
+                    try await Task.sleep(nanoseconds: 800_000_000) // 0.8s
+                } catch { }
+            }
+
+            if game.isAnimatingOpponentTurn {
+                game.isAnimatingOpponentTurn = false
+            } else if game.phase == .animationPhase {
+                game.phase = .mainPhase
+                game.checkHandPlayability()
+            }
+            //clear the override so the next phase change (e.g. user playing a 2) flips the deck to the opponent's back
+            game.deckShouldShowPlayerBack = false
+        } else if game.opponentCardPendingDiscard == nil {
+            if game.isAnimatingOpponentTurn {
+                game.isAnimatingOpponentTurn = false
+            } else if game.phase == .animationPhase {
+                game.phase = .mainPhase
+                game.checkHandPlayability()
+            }
+        }
+
         game.hasPerformedInitialLoad = true
     }
     

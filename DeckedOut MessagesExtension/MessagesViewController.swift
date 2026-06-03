@@ -20,10 +20,23 @@ class MessagesViewController: MSMessagesAppViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupFeedbackSystems()
-        NotificationCenter.default.addObserver(self, selector: #selector(sceneWillDeactivate), name: UIScene.willDeactivateNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(sceneWillDeactivate(_:)), name: UIScene.willDeactivateNotification, object: nil)
     }
 
-    @objc private func sceneWillDeactivate() { //for detecting scene closues on ipad
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Fallback for first launch via App Store "Open" — willBecomeActive(with:) may not fire before the view is shown, leaving the screen blank. Only present if nothing is already loaded and we're not in a transcript instance or about to open into a game.
+        if presentationStyle != .transcript
+            && children.isEmpty
+            && activeGameEngine == nil
+            && activeConversation?.selectedMessage == nil {
+            presentMenuView(for: presentationStyle)
+        }
+    }
+
+    @objc private func sceneWillDeactivate(_ notification: Notification) { //for detecting scene closues on ipad
+        guard let scene = notification.object as? UIScene,
+              scene == view.window?.windowScene else { return }
         SoundManager.instance.stopBackgroundMusic()
     }
     
@@ -57,7 +70,7 @@ class MessagesViewController: MSMessagesAppViewController {
         guard let message = conversation.selectedMessage, // Do we have a message? Can we decode it?
             let gameInfo = extractGameInfo(from: message) else { //No message to decode, the user is opening the main menu
             if presentationStyle != .transcript && children.isEmpty {
-                presentMenuView(for: presentationStyle, with: conversation)
+                presentMenuView(for: presentationStyle)
             }
             return
         }
@@ -99,28 +112,27 @@ class MessagesViewController: MSMessagesAppViewController {
 
     override func willTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
         super.willTransition(to: presentationStyle)
-        guard let conversation = activeConversation else { return }
     
         let isGameLoaded = activeGameEngine != nil
         let isShowingMenu = children.first is UIHostingController<MainMenuView>
-        
+
         if !isGameLoaded && isShowingMenu { // Menu resizing
             withAnimation(.easeInOut(duration: 0.3)) {
                 menuViewModel?.presentationStyle = presentationStyle }
             return
         }
-        
+
         if presentationStyle == .expanded {
             if isGameLoaded { // A game IS loaded but game isn't on screen yet -> Show it.
-                if let selectedMessage = conversation.selectedMessage { // Make sure it's the game the user tapped
+                if let conversation = activeConversation, let selectedMessage = conversation.selectedMessage { // Make sure it's the game the user tapped
                     loadGameStateToMemory(from: selectedMessage, conversation: conversation, isExplicitChange: true)
                 }
                 presentGameView()
             } else {  // Expanded, but no game loaded -> Show Menu
-                presentMenuView(for: presentationStyle, with: conversation)
+                presentMenuView(for: presentationStyle)
             }
         } else { // view is compact -> Always Menu
-            presentMenuView(for: presentationStyle, with: conversation)
+            presentMenuView(for: presentationStyle)
         }
     }
     
@@ -308,14 +320,15 @@ class MessagesViewController: MSMessagesAppViewController {
         }
     }
     
-    private func presentMenuView(for presentationStyle: MSMessagesAppPresentationStyle, with conversation: MSConversation) {
+    private func presentMenuView(for presentationStyle: MSMessagesAppPresentationStyle) {
         let viewModel = MenuViewModel(presentationStyle: presentationStyle)
         self.menuViewModel = viewModel
-        
+
         let menuView = MainMenuView(viewModel: viewModel) { [weak self] gameType, selectedSize in
-            self?.createGame(conversation: conversation, gameType: gameType, handSize: selectedSize)
+            guard let self = self, let conversation = self.activeConversation else { return }
+            self.createGame(conversation: conversation, gameType: gameType, handSize: selectedSize)
         }
-                
+
         presentView(UIHostingController(rootView: menuView))
         SoundManager.instance.stopBackgroundMusic()
     }

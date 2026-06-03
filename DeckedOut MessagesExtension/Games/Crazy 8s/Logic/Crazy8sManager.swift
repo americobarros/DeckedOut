@@ -19,6 +19,7 @@ struct Crazy8sLegacyGameState: Codable, BasicGameState {
     let activeSuitOverride: Suit?
     let turnNumber: Int
     let senderCardBack: String? //the card-back the sender has equipped; optional for backward compat
+    let penaltyCardsDealt: Int? //cards forced on receiver due to a wild card (e.g. a 2); optional for backward compat
 }
 
 // V2: Seat-based groupchat multiplayer game snapshot
@@ -34,6 +35,9 @@ struct Crazy8sV2GameState: Codable, V2GameState {
     let lastPlayerDidDiscard: Bool
     let activeSuitOverride: Suit?
     let seatCardBacks: [String]? //parallel to seats; optional for backward compat
+    let penaltyCardsDealt: Int? //cards forced on next player due to a wild card (e.g. a 2); optional for backward compat
+    let lastPlayerSeatIndex: Int? //who actually played last turn; differs from (currentSeatIndex - 1) when a queen skipped a seat. Optional for backward compat
+    let directionIsReversed: Bool? //flipped each time an ace is played; controls whether seat advancement is +1 or -1. Optional for backward compat
 }
 
 // MARK: The Game Engine
@@ -61,8 +65,15 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
     @Published var opponentHasWon: Bool = false //stays local
     @Published var isGameOver: Bool = false //stays local
     @Published var opponentCardPendingDiscard: Card? = nil // Holds the card waiting in the wings
+    @Published var opponentQueensPendingDiscard: [Card] = [] // V1 1v1: queens the opponent played before the final discard, in chronological animation order
     @Published var opponentCardAnimatingToDiscard: Card? = nil       // The trigger the view actually watches
     @Published var opponentCardAnimatingFromDeck: Card? = nil        // The trigger for draw animations
+    @Published var penaltyCardsForcedOnOpponent: Int = 0 // count of cards we forced on the opponent this turn (e.g. via a 2)
+    @Published var pendingPlayerPenaltyDraws: Int = 0 // count of cards the local player needs to receive as a penalty animation
+    @Published var deckShouldShowPlayerBack: Bool = false // flip the deck to the user's card back ahead of penalty draws so the animated card and the deck share a back
+    private var skipNextSeat: Bool = false // set when the user plays a queen in V2; advances currentSeatIndex by 2 on send
+    private var previousPlayerSeatIndex: Int = 0 // the actual seat that played the previous turn (handles queen-skip)
+    private var isDirectionReversed: Bool = false // toggled when an ace is played in V2; flips seat-advancement direction
     var hasPerformedInitialLoad: Bool = false //stays local. this is just for the 0.5 delay in game view when you open a message
 
     // Card-back equipped by each player (sent in the message payload)
@@ -95,10 +106,14 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
     }
 
     /// Card-back to display on the deck/discard stacks when it isn't the user's turn.
-    /// Reflects the upcoming player's card back, so the deck updates as soon as the previous turn lands.
+    /// During animation, matches the seat currently drawing from the deck so the animated card and the deck share a back.
+    /// Otherwise reflects the upcoming player's back so the deck updates as soon as the previous turn lands.
     var opponentDeckCardBack: String {
         if isSinglePlayer { return opponentCardBack }
         guard !seats.isEmpty else { return "cardBackRed" }
+        if phase == .animationPhase || isAnimatingOpponentTurn {
+            return cardBack(forSeat: animatingOpponentSeat)
+        }
         let nextSeat = (animatingOpponentSeat + 1) % seats.count
         return cardBack(forSeat: nextSeat)
     }
@@ -170,12 +185,80 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
 
         if card.rank == .eight {
             userNeedsToChooseSuit = true //signals GameView to prompt the user for a new suit
+        } else if card.rank == .two {
+            //block further player interaction while the penalty animation plays
+            phase = .animationPhase
+            activeSuitOverride = nil
+            Task { @MainActor in
+                await dealPenaltyCards(count: 2)
+                completeTurn()
+            }
+        } else if card.rank == .queen {
+            activeSuitOverride = nil
+            if isSinglePlayer && !playerHand.isEmpty {
+                //skip the opponent: keep playing locally without sending. fresh draw allowance for the bonus turn.
+                cardsDrawnThisTurn = 0
+                checkHandPlayability()
+            } else {
+                if !isSinglePlayer { skipNextSeat = true }
+                completeTurn()
+            }
+        } else if card.rank == .ace && !isSinglePlayer {
+            //reverse direction in V2 groupchat; in V1 legacy the ace plays as a normal card (handled by the else below)
+            isDirectionReversed.toggle()
+            activeSuitOverride = nil
+            completeTurn()
         } else {
             activeSuitOverride = nil
             completeTurn()
         }
     }
-    
+
+    @MainActor
+    private func dealPenaltyCards(count: Int) async {
+        //In V2 3+ player, swap the active opponent slot to the next seat so the penalty draws animate into their hand.
+        let isMultiOpponent = !isSinglePlayer && seats.count > 2
+        let step = isDirectionReversed ? -1 : 1
+        let nextSeat = seats.isEmpty ? 0 : ((mySeatIndex + step) % seats.count + seats.count) % seats.count
+
+        if isMultiOpponent {
+            animatingOpponentSeat = nextSeat
+            opponentHand = allHands.indices.contains(nextSeat) ? allHands[nextSeat] : []
+        }
+
+        for _ in 0..<count {
+            //If the deck would run out mid-penalty, reshuffle the discard pile back into the deck (preserving the top 2 cards).
+            if deck.isEmpty, discardPile.count > 2 {
+                let topDiscard = discardPile.popLast()!
+                let secondDiscard = discardPile.popLast()!
+                deck = discardPile.shuffled()
+                discardPile = [secondDiscard, topDiscard]
+            }
+            guard !deck.isEmpty else { break }
+            let drawn = deck.popLast()!
+            opponentHand.append(drawn)
+            if isMultiOpponent, allHands.indices.contains(nextSeat) {
+                allHands[nextSeat].append(drawn)
+            }
+            opponentCardAnimatingFromDeck = drawn
+            penaltyCardsForcedOnOpponent += 1
+            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s, matches opponent draw cadence
+        }
+
+        if isMultiOpponent {
+            //restore opponentHand to the previous opponent's hand so sendV2GameState's previousSeat assignment is a no-op
+            opponentHand = allHands.indices.contains(previousPlayerSeatIndex) ? allHands[previousPlayerSeatIndex] : []
+        }
+    }
+
+    func userDrawPenaltyCard() {
+        guard pendingPlayerPenaltyDraws > 0 else { return }
+        if deck.isEmpty { return } //deck should already contain unwound penalty cards from prepareOpponentsTurnForAnimation
+        let card = deck.popLast()!
+        playerHand.append(card)
+        pendingPlayerPenaltyDraws -= 1
+    }
+
     func submitChosenSuit(_ suit: Suit) {
         activeSuitOverride = suit
         userNeedsToChooseSuit = false
@@ -218,6 +301,11 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
             isAnimatingOpponentTurn = false
             phase = .gameEndPhase
             isGameOver = true
+        } else if pendingPlayerPenaltyDraws > 0 {
+            //animateOpponentsTurn will run penalty draws next and complete the phase transition afterwards
+        } else if !opponentQueensPendingDiscard.isEmpty {
+            //V1 1v1: more queens (and the final card) still need to animate; stay in animationPhase
+            //so subsequent opponentDiscardCard calls pass the guard.
         } else if isAnimatingOpponentTurn {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 self.isAnimatingOpponentTurn = false
@@ -274,6 +362,9 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         }
         self.cardsDrawnThisTurn = 0
         self.userDidDiscard = false
+        self.penaltyCardsForcedOnOpponent = 0
+        self.pendingPlayerPenaltyDraws = 0
+        self.deckShouldShowPlayerBack = false
         self.opponentDidDiscard = state.didDiscard
         if !opponentDidDiscard { //the opponent did not discard (they drew 3 cards)
             self.activeSuitOverride = state.activeSuitOverride //nil or the value the user set a turn prior
@@ -384,22 +475,28 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         self.mySeatIndex = seatIndex
         self.cardsDrawnThisTurn = 0
         self.userDidDiscard = false
+        self.penaltyCardsForcedOnOpponent = 0
+        self.pendingPlayerPenaltyDraws = 0
+        self.deckShouldShowPlayerBack = false
         self.opponentDidDiscard = state.lastPlayerDidDiscard
         if !opponentDidDiscard {
             self.activeSuitOverride = state.activeSuitOverride
         } else {
             hiddenActiveSuitOverride = state.activeSuitOverride
         }
+        self.isDirectionReversed = state.directionIsReversed ?? false
 
         let isMyTurn = (state.currentSeatIndex == seatIndex)
         self.playerHand = state.hands[seatIndex]
-        let playerBeforeUser = (seatIndex - 1 + state.seats.count) % state.seats.count
+        //use the explicit lastPlayerSeatIndex when present (set when a queen skipped a seat); fall back to (currentSeatIndex - 1) for legacy compat.
+        let actualPreviousPlayer = state.lastPlayerSeatIndex ?? ((state.currentSeatIndex - 1 + state.seats.count) % state.seats.count)
+        self.previousPlayerSeatIndex = actualPreviousPlayer
 
         if isMyTurn {
             self.isSpectating = false
             self.isAnimatingOpponentTurn = false
-            self.animatingOpponentSeat = playerBeforeUser
-            let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: playerBeforeUser)
+            self.animatingOpponentSeat = actualPreviousPlayer
+            let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: actualPreviousPlayer)
             if hasVisualsToAnimate {
                 phase = .animationPhase
             } else { //it is the first turn
@@ -414,9 +511,8 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
                 SoundManager.instance.playGameEnd(didWin: true)
                 isGameOver = true
             } else {
-                let lastPlayerSeat = (state.currentSeatIndex - 1 + state.seats.count) % state.seats.count
-                self.animatingOpponentSeat = lastPlayerSeat
-                let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: lastPlayerSeat)
+                self.animatingOpponentSeat = actualPreviousPlayer
+                let hasVisualsToAnimate = prepareOpponentsTurnForAnimationV2(state: state, previousSeat: actualPreviousPlayer)
                 phase = .idlePhase
                 isAnimatingOpponentTurn = hasVisualsToAnimate
             }
@@ -442,8 +538,15 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         self.opponentHasWon = false
         self.isGameOver = false
         self.opponentCardPendingDiscard = nil
+        self.opponentQueensPendingDiscard = []
         self.opponentCardAnimatingToDiscard = nil
         self.opponentCardAnimatingFromDeck = nil
+        self.penaltyCardsForcedOnOpponent = 0
+        self.pendingPlayerPenaltyDraws = 0
+        self.deckShouldShowPlayerBack = false
+        self.skipNextSeat = false
+        self.previousPlayerSeatIndex = 0
+        self.isDirectionReversed = false
         self.hasPerformedInitialLoad = false
         self.turnNumber = 0
         self.seats = []
@@ -462,35 +565,67 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
     }
 
     private func prepareOpponentsTurnForAnimation(state: Crazy8sLegacyGameState) -> Bool {
+        let penaltyCards = state.penaltyCardsDealt ?? 0
         guard turnNumber > 0 else {
             self.opponentHand = state.senderHand //first turn! simple init, no turn to show
             return false
         }
-        
+
         var opponentsHandPreAnimation = state.senderHand
         self.cardsOpponentDrew = state.cardsOpponentDrew
         
+        self.opponentQueensPendingDiscard = []
         if opponentDidDiscard {
             let cardTheyDiscarded = discardPile.popLast()! //we will animate it back later...
             self.opponentCardPendingDiscard = cardTheyDiscarded
             opponentsHandPreAnimation.append(cardTheyDiscarded)
+
+            //In 1v1, a queen grants the opponent another turn. Pop any queens stacked beneath the
+            //final discard so we animate the full sequence chronologically instead of skipping
+            //straight to the last card. Queens are appended to the opponent's hand in pop order
+            //(newest first) so the oldest queen ends up at the tail — opponentDiscardCard's
+            //removeLast() then peels them off in animation order.
+            //Skip on turn 1: the discard pile may have been initialized with a queen that nobody played.
+            if turnNumber > 1, discardPile.count != 2 {
+                var queens: [Card] = []
+                while discardPile.last?.rank == .queen {
+                    let queen = discardPile.popLast()!
+                    queens.append(queen)
+                    opponentsHandPreAnimation.append(queen)
+                }
+                self.opponentQueensPendingDiscard = queens.reversed() //store oldest-first for iteration
+            }
         } else {
             self.opponentCardPendingDiscard = nil
         }
-        
+
         for _ in 0..<cardsOpponentDrew {
             if !opponentsHandPreAnimation.isEmpty { //do we really need to check this? this might be pointless
                 let cardToReturn = opponentsHandPreAnimation.removeLast()
                 deck.append(cardToReturn)
             }
         }
-        
+
         opponentHand = opponentsHandPreAnimation
+
+        //unwind penalty cards from the local player's hand so they can animate from the deck during the animation phase
+        if penaltyCards > 0 {
+            for _ in 0..<penaltyCards {
+                if !playerHand.isEmpty {
+                    deck.append(playerHand.removeLast())
+                }
+            }
+            pendingPlayerPenaltyDraws = penaltyCards
+        }
         return true
     }
 
     private func prepareOpponentsTurnForAnimationV2(state: Crazy8sV2GameState, previousSeat: Int) -> Bool {
-        guard state.cardsDrawnByLastPlayer > 0 || state.lastPlayerDidDiscard else {
+        let penaltyCards = state.penaltyCardsDealt ?? 0
+        let hasOpponentVisuals = state.cardsDrawnByLastPlayer > 0 || state.lastPlayerDidDiscard
+        let hasPenaltyVisualsForLocal = penaltyCards > 0 && state.currentSeatIndex == mySeatIndex
+
+        guard hasOpponentVisuals || hasPenaltyVisualsForLocal else {
             self.opponentHand = state.hands[previousSeat]
             return false
         }
@@ -514,6 +649,20 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         }
 
         opponentHand = opponentsHandPreAnimation
+
+        //unwind penalty cards from the upcoming player's hand. Only animate them if the local player is the recipient;
+        //spectators in 3+ player V2 will see the static hand grow without a dedicated penalty animation.
+        if penaltyCards > 0, state.currentSeatIndex == mySeatIndex {
+            for _ in 0..<penaltyCards {
+                if !playerHand.isEmpty {
+                    deck.append(playerHand.removeLast())
+                }
+            }
+            if allHands.indices.contains(state.currentSeatIndex) {
+                allHands[state.currentSeatIndex] = playerHand
+            }
+            pendingPlayerPenaltyDraws = penaltyCards
+        }
         return true
     }
 
@@ -557,7 +706,8 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
                 didDiscard: false,
                 activeSuitOverride: nil,
                 turnNumber: 0,
-                senderCardBack: myCardBack
+                senderCardBack: myCardBack,
+                penaltyCardsDealt: nil
             )
             self.isSinglePlayer = true
             return try? JSONEncoder().encode(legacyState)
@@ -576,7 +726,10 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
                 cardsDrawnByLastPlayer: 0,
                 lastPlayerDidDiscard: false,
                 activeSuitOverride: nil,
-                seatCardBacks: initialBacks
+                seatCardBacks: initialBacks,
+                penaltyCardsDealt: nil,
+                lastPlayerSeatIndex: nil,
+                directionIsReversed: nil
             )
             self.isSinglePlayer = false
             return try? JSONEncoder().encode(initialState)
@@ -632,7 +785,10 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
             cardsDrawnByLastPlayer: 0,
             lastPlayerDidDiscard: false,
             activeSuitOverride: state.activeSuitOverride,
-            seatCardBacks: updatedBacks)
+            seatCardBacks: updatedBacks,
+            penaltyCardsDealt: nil,
+            lastPlayerSeatIndex: nil,
+            directionIsReversed: state.directionIsReversed)
 
         return try? JSONEncoder().encode(updatedState)
     }
@@ -658,7 +814,8 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
             didDiscard: self.userDidDiscard,
             activeSuitOverride: activeSuitOverride,
             turnNumber: self.turnNumber + 1,
-            senderCardBack: CardBackSelection.shared.selectedName
+            senderCardBack: CardBackSelection.shared.selectedName,
+            penaltyCardsDealt: penaltyCardsForcedOnOpponent > 0 ? penaltyCardsForcedOnOpponent : nil
         )
 
         guard let stateData = try? JSONEncoder().encode(currentGameState) else {
@@ -667,17 +824,24 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         }
 
         self.turnNumber += 1
-        self.onTurnCompleted?(stateData, .crazy8s)
+        //Defer the iMessage send to the next runloop so SwiftUI commits the discard state change
+        //(hand shrink + new discard top card) before the conversation.send pipeline runs.
+        Task { @MainActor [weak self] in
+            self?.onTurnCompleted?(stateData, .crazy8s)
+        }
     }
 
     private func sendV2GameState() {
         allHands[mySeatIndex] = playerHand
-        let previousSeat = (mySeatIndex - 1 + seats.count) % seats.count //why do we care about previousSeat here?
         if turnNumber > 0 {
-            allHands[previousSeat] = opponentHand //why do we set previous seat on our turn?
+            //sync our view of the previous player's hand (handles queen-skip via previousPlayerSeatIndex)
+            allHands[previousPlayerSeatIndex] = opponentHand
         }
 
-        let nextSeat = (mySeatIndex + 1) % seats.count
+        //skipNextSeat advances by 2 instead of 1 when the user played a queen; direction follows the ace-toggled flag
+        let step = isDirectionReversed ? -1 : 1
+        let advancement = (skipNextSeat ? 2 : 1) * step
+        let nextSeat = ((mySeatIndex + advancement) % seats.count + seats.count) % seats.count
 
         var outgoingBacks = seatCardBacks
         if outgoingBacks.count < seats.count {
@@ -698,7 +862,10 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
             cardsDrawnByLastPlayer: self.cardsDrawnThisTurn,
             lastPlayerDidDiscard: self.userDidDiscard,
             activeSuitOverride: self.activeSuitOverride,
-            seatCardBacks: outgoingBacks
+            seatCardBacks: outgoingBacks,
+            penaltyCardsDealt: penaltyCardsForcedOnOpponent > 0 ? penaltyCardsForcedOnOpponent : nil,
+            lastPlayerSeatIndex: mySeatIndex,
+            directionIsReversed: isDirectionReversed
         )
 
         guard let stateData = try? JSONEncoder().encode(currentGameState) else {
@@ -710,7 +877,11 @@ class Crazy8sManager: ObservableObject, GameEngine, GroupChatCapable {
         // Mark our seat as the one who just played so the deck immediately reflects the next player's back.
         self.seatCardBacks = outgoingBacks
         self.animatingOpponentSeat = mySeatIndex
-        self.onTurnCompleted?(stateData, .crazy8s)
+        self.skipNextSeat = false
+        //Defer the iMessage send to the next runloop so SwiftUI commits the discard state change first.
+        Task { @MainActor [weak self] in
+            self?.onTurnCompleted?(stateData, .crazy8s)
+        }
     }
 
 }

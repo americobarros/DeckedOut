@@ -362,14 +362,14 @@ struct MainMenuView: View {
             )*/
             .overlay(alignment: .leading) {
                 rulesButton
-                    .padding(.leading, isExpanded ? (isIpad ? 250 : 75) : (showButtonShapes ? 10 : 25))
+                    .padding(.leading, isExpanded ? (isIpad ? 270 : 75) : (showButtonShapes ? 10 : 25))
                     .padding(.top, isExpanded ? (isIpad ? -120 : -130) : (showButtonShapes ? 20 : 0))
                     .opacity(isTitleBarHidden ? 0 : 1)
                     .accessibilityHidden(isTitleBarHidden)
             }
             .overlay(alignment: .trailing) {
                 customizationButton
-                    .padding(.trailing, isExpanded ? (isIpad ? 250 : 75) : (showButtonShapes ? 10 : 25))
+                    .padding(.trailing, isExpanded ? (isIpad ? 270 : 75) : (showButtonShapes ? 10 : 25))
                     .padding(.top, isExpanded ? (isIpad ? 70 : 100) : (showButtonShapes ? 20 : 0))
                     .opacity(isTitleBarHidden ? 0 : 1)
                     .accessibilityHidden(isTitleBarHidden)
@@ -1099,7 +1099,7 @@ struct MainMenuView: View {
                 }
             }
         }) {
-            Text("Start Game!")
+            Text("New Game")
                 .font(.system(size: isExpanded ? 40 : 28, weight: .bold, design: .serif))
                 .foregroundColor(.white)
                 .scaleEffect(cardsAnimatedAway < 7 ? (isPulsating ? 1.05 : 1) : 1.0)
@@ -1123,8 +1123,8 @@ struct MainMenuView: View {
                 .shadow(color: .black.opacity(0.2), radius: 5, x: 5, y: 5)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Start Game")
-        .accessibilityInputLabels(["Start Game", "Start", "Begin Game", "Play"])
+        .accessibilityLabel("New Game")
+        .accessibilityInputLabels(["New Game", "New", "Create Game", "Start Game", "Play"])
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("Attaches the game to your message so you can send it.")
     }
