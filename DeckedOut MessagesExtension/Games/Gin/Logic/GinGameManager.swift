@@ -702,7 +702,12 @@ class GinRummyManager: ObservableObject, GameEngine, GroupChatCapable {
     
     func createNewGameState(seats: [UUID]) -> Data? {
         let newSessionID = UUID()
-        let playerCount = seats.count
+        guard let creatorSeat = seats.first else { return nil }
+
+        // In self-messages iMessage can surface only one unique participant.
+        // Mirror that seat so game setup still follows legacy 2-player flow.
+        let normalizedSeats = seats.count == 1 ? [creatorSeat, creatorSeat] : seats
+        let playerCount = normalizedSeats.count
 
         // Scale decks dynamically: 1 deck for 1-5 players, 2 for 6-10, etc.
         let decksNeeded = max(1, (playerCount - 1) / 5 + 1)
@@ -721,14 +726,14 @@ class GinRummyManager: ObservableObject, GameEngine, GroupChatCapable {
         newDiscardPile.append(newDeck.popLast()!)
 
         // Only seat 0 belongs to the creator; remaining seats are unclaimed until players join
-        var seatList = [seats[0]]
+        var seatList = [normalizedSeats[0]]
         for _ in 1..<playerCount {
             seatList.append(Self.unclaimedSeat)
         }
 
         let myCardBack = CardBackSelection.shared.selectedName
 
-        if seats.count == 2 { //1v1 game mode, create legacy game state
+        if normalizedSeats.count == 2 { //1v1 game mode, create legacy game state
             let legacyState = GinRummyGameState(
                 sessionID: newSessionID,
                 deck: newDeck,
