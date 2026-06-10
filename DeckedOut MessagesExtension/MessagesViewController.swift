@@ -426,8 +426,9 @@ class MessagesViewController: MSMessagesAppViewController {
         
         setupEngineListener()
 
-        //init and package initital game state
-        let seats = [conversation.localParticipantIdentifier] + conversation.remoteParticipantIdentifiers
+        // Build a stable seat list from unique participants. In self-text chats,
+        // there may be only one unique identifier, but we still want a 2-seat game.
+        let seats = normalizedSeats(for: conversation)
         guard let stateData = activeGameEngine?.createNewGameState(seats: seats) else {
             print("Error: Could not generate starting game state for \(gameType)")
             return
@@ -453,6 +454,22 @@ class MessagesViewController: MSMessagesAppViewController {
         }
         
         self.activeGameEngine = nil //set it back to nil to fix view transition bug. If we don't, willTransition thinks theres an active game when it hasn't been sent yet. activeGameEngine gets reactivated in didReceive/didSelect anyway
+    }
+
+    private func normalizedSeats(for conversation: MSConversation) -> [UUID] {
+        var uniqueSeats: [UUID] = []
+        for participantID in [conversation.localParticipantIdentifier] + conversation.remoteParticipantIdentifiers {
+            if !uniqueSeats.contains(participantID) {
+                uniqueSeats.append(participantID)
+            }
+        }
+
+        // If the user is texting themselves, keep gameplay as a 2-seat match.
+        if uniqueSeats.count == 1, let localID = uniqueSeats.first {
+            return [localID, localID]
+        }
+
+        return uniqueSeats
     }
     
     func sendGameMove(gameType: GameType, stateData: Data) {
