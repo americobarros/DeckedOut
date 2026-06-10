@@ -218,6 +218,22 @@ struct GinGameView: View {
         }
     }
     
+    private var knockIconName: String {
+        game.isKnockArmed ? "hand.raised.fill" : "hand.raised"
+    }
+
+    private var knockHintText: LocalizedStringKey {
+        game.isKnockArmed ? "Knock is activated. Discard a card to knock." : "Declare a knock, then discard to end the round."
+    }
+
+    private var knockShowsCheckmark: Bool {
+        game.isKnockArmed
+    }
+
+    private var knockForegroundColor: Color {
+        game.isKnockArmed ? .white : .white.opacity(0.95)
+    }
+    
     private var rulesButtonSection: some View {
         Spacer()
             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? game.extensionWidth : UIScreen.main.bounds.width)
@@ -229,10 +245,10 @@ struct GinGameView: View {
                             game.requestKnock()
                         }) {
                             HStack {
-                                Image(systemName: game.isKnockArmed ? "hand.raised.fill" : "hand.raised")
+                                Image(systemName: knockIconName)
                                     .font(.system(size: rulesButtonSize * 0.82))
 
-                                if game.isKnockArmed {
+                                if knockShowsCheckmark {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: rulesButtonSize * 0.55))
                                 }
@@ -243,20 +259,13 @@ struct GinGameView: View {
                                         .fontWeight(.semibold)
                                 }
                             }
-                            .foregroundStyle(game.isKnockArmed ? Color.white : Color.white.opacity(0.95))
+                            .foregroundStyle(knockForegroundColor)
                             .padding(showButtonShapes ? EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16) : EdgeInsets())
-                            .background(
-                                Group {
-                                    if showButtonShapes {
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(game.isKnockArmed ? Color.green.opacity(0.35) : .ultraThinMaterial)
-                                    }
-                                }
-                            )
+                            .background(knockButtonBackground)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(Text("Knock", comment: "VoiceOver accessibility label for the knock button in Gin Rummy"))
-                        .accessibilityHint(Text(game.isKnockArmed ? "Knock is activated. Discard a card to knock." : "Declare a knock, then discard to end the round.", comment: "VoiceOver hint for the knock button in Gin Rummy"))
+                        .accessibilityHint(Text(knockHintText, comment: "VoiceOver hint for the knock button in Gin Rummy"))
                         .accessibilityInputLabels([
                             Text("Knock", comment: "Voice Control input label for the knock button in Gin Rummy"),
                             Text("Declare knock", comment: "Voice Control input label for declaring a knock in Gin Rummy"),
@@ -343,6 +352,20 @@ struct GinGameView: View {
                 .padding(.top, 10)
                 .padding(.horizontal, 30)
             )
+    }
+
+    @ViewBuilder
+    private var knockButtonBackground: some View {
+        if showButtonShapes {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    if game.isKnockArmed {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color.green.opacity(0.35))
+                    }
+                }
+        }
     }
     
     private var playersHand: some View {

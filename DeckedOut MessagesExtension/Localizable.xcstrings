@@ -11399,6 +11399,9 @@
         }
       }
     },
+    "Knock is activated. Discard a card to knock." : {
+
+    },
     "Knocking" : {
       "localizations" : {
         "en" : {
