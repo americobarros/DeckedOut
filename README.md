@@ -26,4 +26,10 @@
 
 ---
 
-*Your seat at the table is ready!*
+<p align="center">
+  <a href="https://apps.apple.com/us/app/card-games-for-imessage/id6757935828">
+    <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83&amp;releaseDate=1276560000&h=7e7b68bf1aa5ce96c8d80ef8228114f4" alt="Download on the App Store" width="150"/>
+  </a>
+  <br><br>
+  <em>Your seat at the table is ready!</em>
+</p>
