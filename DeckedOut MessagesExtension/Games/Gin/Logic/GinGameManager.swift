@@ -395,6 +395,9 @@ class GinRummyManager: ObservableObject, GameEngine, GroupChatCapable {
             self.playerHand = state.receiverHand
             let hasVisualsToAnimate = prepareOpponentTurnVisuals(state: state)
             if hasVisualsToAnimate {//it is not the first turn...
+                if roundWinner != nil {
+                    hydrateLegacyWinnerFlagsFromRoundResult(isPlayersTurn: isPlayersTurn)
+                }
                 phase = .animationPhase
             } else { //it is the first turn...
                 hydrateLegacyWinnerFlagsFromRoundResult(isPlayersTurn: isPlayersTurn)
@@ -702,6 +705,16 @@ class GinRummyManager: ObservableObject, GameEngine, GroupChatCapable {
         discardPile.append(card)
         SoundManager.instance.playCardSlap()
         HapticManager.instance.playCardSlap()
+
+        if roundWinner != nil {
+            // Knock/undercut/gin outcomes are encoded by the sender in roundWinner.
+            hydrateLegacyWinnerFlagsFromRoundResult(isPlayersTurn: true)
+            SoundManager.instance.playGameEnd(didWin: playerHasWon)
+            isAnimatingOpponentTurn = false
+            phase = .gameEndPhase
+            return
+        }
+
         opponentHasWon = GinRummyValidator.canMeldAllCards(hand: opponentHand)
         if opponentHasWon {
             isGameOver = true
